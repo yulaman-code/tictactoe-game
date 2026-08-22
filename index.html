@@ -563,6 +563,7 @@
   <div class="result-text" id="resultText"></div>
   <div class="result-pts" id="resultPts"></div>
   <button class="restart-btn" id="restartBtn">Заново</button>
+  <button class="restart-btn" id="menuBtnResult" style="display:none;margin-top:14px">В меню</button>
 </div>
 
 <!-- ═══ CONFIRM ═══ -->
@@ -1145,6 +1146,7 @@ function showResultLocal(winner, pts) {
     resultText.className = 'result-text draw';
     resultPts.innerHTML = '';
   }
+  $('#menuBtnResult').style.display = 'none';
   resultOverlay.classList.add('show');
 }
 
@@ -1179,6 +1181,7 @@ function showResult(g) {
     resultPts.innerHTML = '';
   }
   updateScoresFromServer(g);
+  $('#menuBtnResult').style.display = '';
   resultOverlay.classList.add('show');
 
   // refresh points
@@ -1227,6 +1230,10 @@ $('#restartBtn').addEventListener('click', () => {
   } else {
     startGame();
   }
+});
+$('#menuBtnResult').addEventListener('click', () => {
+  resultOverlay.classList.remove('show');
+  goToMenu();
 });
 
 function goToMenu() {
