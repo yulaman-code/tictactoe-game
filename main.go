@@ -122,6 +122,12 @@ func getUserByEmail(email string) (*User, error) {
 	return u, nil
 }
 
+func getUserRank(points int) int {
+	var rank int
+	db.QueryRow("SELECT COUNT(*)+1 FROM users WHERE points > $1", points).Scan(&rank)
+	return rank
+}
+
 func addPoints(id int64, pts int) {
 	db.Exec("UPDATE users SET points=GREATEST(0, points+$1) WHERE id=$2", pts, id)
 }
@@ -154,6 +160,18 @@ func getGame(id string) (*GameState, error) {
 	g.TurnStartedAt = tsa.Unix()
 	g.Forfeit = ff
 	json.Unmarshal([]byte(board), &g.Board)
+	if px != "" {
+		if u, e := getUserByEmail(px); e == nil {
+			g.PlayerXPts = u.Points
+			g.PlayerXRank = getUserRank(u.Points)
+		}
+	}
+	if po != "" {
+		if u, e := getUserByEmail(po); e == nil {
+			g.PlayerOPts = u.Points
+			g.PlayerORank = getUserRank(u.Points)
+		}
+	}
 	db.QueryRow("SELECT COUNT(*) FROM games WHERE status='finished'").Scan(&g.TotalGames)
 	db.QueryRow("SELECT COUNT(*) FROM games WHERE status='finished' AND winner='X'").Scan(&g.WinsX)
 	db.QueryRow("SELECT COUNT(*) FROM games WHERE status='finished' AND winner='O'").Scan(&g.WinsO)
@@ -304,6 +322,10 @@ type GameState struct {
 	Draws         int      `json:"draws"`
 	TurnStartedAt int64    `json:"turn_started_at"`
 	Forfeit       bool     `json:"forfeit"`
+	PlayerXPts    int      `json:"player_x_pts"`
+	PlayerOPts    int      `json:"player_o_pts"`
+	PlayerXRank   int      `json:"player_x_rank"`
+	PlayerORank   int      `json:"player_o_rank"`
 }
 
 type Claims struct {
