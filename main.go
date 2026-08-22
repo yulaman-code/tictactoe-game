@@ -457,11 +457,23 @@ func handleCreateGame(w http.ResponseWriter, r *http.Request, c *Claims) {
 
 	gid := getActiveGameID(c.UserID)
 	if gid != "" {
-		log.Printf("Player %s already in game %s", c.Email, gid)
+		log.Printf("Player %s found existing game %s", c.Email, gid)
 		g, err := getGame(gid)
 		if err == nil && g.Status == "finished" {
 			log.Printf("Old game %s finished, allowing new game", gid)
+		} else if err == nil && g.Status == "waiting" {
+			var createdAt time.Time
+			db.QueryRow("SELECT created_at FROM games WHERE id=$1", gid).Scan(&createdAt)
+			if time.Since(createdAt) > 2*time.Minute {
+				log.Printf("Old waiting game %s stale (%.0fs), cleaning up", gid, time.Since(createdAt).Seconds())
+				db.Exec("UPDATE games SET status='finished', winner='' WHERE id=$1", gid)
+			} else {
+				log.Printf("Rejoining waiting game %s", gid)
+				jsonResp(w, map[string]interface{}{"game_id": gid, "status": "joined"})
+				return
+			}
 		} else {
+			log.Printf("Rejoining active game %s", gid)
 			jsonResp(w, map[string]interface{}{"game_id": gid, "status": "joined"})
 			return
 		}
