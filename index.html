@@ -855,6 +855,7 @@ function startGame() {
   current = 'X';
   gameOver = false;
   resultOverlay.classList.remove('show');
+  boardEl.style.pointerEvents = '';
   showScreen('#game');
   updateGamePts();
   document.querySelectorAll('.cell').forEach(c => {
@@ -927,7 +928,7 @@ function handleMove(i) {
 }
 
 function aiMove() {
-  if (gameOver) return;
+  if (gameOver) { boardEl.style.pointerEvents = ''; return; }
   const pos = aiBestMove();
   if (pos === -1) return;
   cells[pos] = aiSym;
