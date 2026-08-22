@@ -717,13 +717,14 @@ const themeBtn = $('#themeBtn');
 const themeDropdown = $('#themeDropdown');
 themeBtn.addEventListener('click', (e) => {
   e.stopPropagation();
+  sndClick();
   themeDropdown.classList.toggle('show');
 });
 document.addEventListener('click', () => themeDropdown.classList.remove('show'));
 themeDropdown.addEventListener('click', (e) => {
   e.stopPropagation();
   const opt = e.target.closest('.theme-option');
-  if (opt) { applyTheme(opt.dataset.theme); themeDropdown.classList.remove('show'); }
+  if (opt) { sndClick(); applyTheme(opt.dataset.theme); themeDropdown.classList.remove('show'); }
 });
 
 let cells = Array(9).fill(null);
