@@ -1077,6 +1077,7 @@ async function handleOnlineMove(i) {
     const g = await api('/api/game/move', { game_id: onlineGameId, pos: i });
     loadGameState(g);
     if (g.status === 'finished') {
+      gameOver = true;
       stopPoll();
       showResult(g);
     }

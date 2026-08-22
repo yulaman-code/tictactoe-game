@@ -338,6 +338,11 @@ func parseToken(tok string) *Claims {
 	}
 	var uid int64
 	fmt.Sscanf(sp[0], "%d", &uid)
+	var expiry int64
+	fmt.Sscanf(sp[2], "%d", &expiry)
+	if time.Now().Unix() > expiry {
+		return nil
+	}
 	return &Claims{UserID: uid, Email: sp[1]}
 }
 
@@ -608,6 +613,7 @@ func handleMove(w http.ResponseWriter, r *http.Request, c *Claims) {
 			} else if loser == "O" && g.PlayerO != "" {
 				if u, e := getUserByEmail(g.PlayerO); e == nil { addPoints(u.ID, -1) }
 			}
+			break
 		}
 	}
 
