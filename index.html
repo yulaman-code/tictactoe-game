@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Крестики-Нолики v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    color: #fff;
+    font-family: 'Orbitron', monospace, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+  .stars { position: fixed; inset: 0; z-index: 0; }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: #fff;
+    border-radius: 50%;
+    animation: twinkle var(--dur) ease-in-out infinite alternate;
+  }
+  @keyframes twinkle { 0%{opacity:.1} 100%{opacity:var(--max-o,.9)} }
+
+  .scanline {
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);
+    pointer-events: none; z-index: 50;
+  }
+
+  .screen {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 10; position: relative; width: 100%; height: 100%;
+  }
+  .screen.active { display: flex; }
+
+  /* ─── Menu ─── */
+  #menu .hal-eye {
+    width: 100px; height: 100px; border-radius: 50%;
+    background: radial-gradient(circle,#ff0000 0%,#cc0000 40%,#660000 70%,#000 100%);
+    box-shadow: 0 0 40px rgba(255,0,0,.4), 0 0 80px rgba(255,0,0,.15);
+    margin-bottom: 40px;
+    animation: hal-pulse 3s ease-in-out infinite, fadeSlideIn 1.5s ease-out .5s both;
+  }
+  @keyframes hal-pulse {
+    0%,100%{box-shadow:0 0 40px rgba(255,0,0,.4),0 0 80px rgba(255,0,0,.15)}
+    50%{box-shadow:0 0 60px rgba(255,0,0,.6),0 0 120px rgba(255,0,0,.25)}
+  }
+  #menu .title {
+    font-size: clamp(1.4rem,4vw,2.6rem); font-weight: 900;
+    letter-spacing: .15em; text-transform: uppercase; margin-bottom: 50px;
+    background: linear-gradient(180deg,#fff 30%,#888 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    animation: fadeSlideIn 1.5s ease-out;
+  }
+
+  .menu-btn {
+    font-family: 'Orbitron',monospace,sans-serif;
+    font-size: clamp(.7rem,1.6vw,.85rem); font-weight: 700;
+    letter-spacing: .25em; text-transform: uppercase;
+    color: #888; background: transparent;
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 16px 40px; cursor: pointer;
+    transition: all .3s ease; width: 260px;
+    margin-bottom: 12px;
+  }
+  .menu-btn:hover {
+    color: #fff; border-color: rgba(255,255,255,.4);
+  }
+  .menu-btn.primary {
+    color: #fff; border-color: rgba(255,255,255,.3);
+    animation: fadeSlideIn 1.5s ease-out .7s both;
+  }
+  .menu-btn.primary:hover {
+    border-color: rgba(255,0,0,.6);
+    box-shadow: 0 0 30px rgba(255,0,0,.15);
+    color: #ff3333;
+  }
+  .menu-btn.auth { animation: fadeSlideIn 1.5s ease-out .9s both; color: #555; }
+  .menu-btn.register { animation: fadeSlideIn 1.5s ease-out 1.1s both; color: #444; }
+  .menu-btn.online { animation: fadeSlideIn 1.5s ease-out 1.3s both; color: #555; }
+  .menu-btn.ai { animation: fadeSlideIn 1.5s ease-out .8s both; }
+  .menu-btn.lb { animation: fadeSlideIn 1.5s ease-out 1.2s both; color: #666; border-color: rgba(255,255,255,.08); }
+  .menu-btn.lb:hover { color: #ccc; border-color: rgba(255,255,255,.25); }
+  .menu-btn.logout { animation: fadeSlideIn 1.5s ease-out 1.5s both; color: #444; border-color: rgba(255,255,255,.06); }
+  .menu-btn.logout:hover { color: #ff3333; border-color: rgba(255,0,0,.3); }
+
+  .menu-user {
+    font-size: .5rem; letter-spacing: .2em; color: #333;
+    margin-bottom: 30px; animation: fadeSlideIn 1.5s ease-out .6s both;
+  }
+  .menu-user span { color: #666; }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Auth Forms ─── */
+  .auth-title {
+    font-size: clamp(.8rem,2vw,1rem); font-weight: 700;
+    letter-spacing: .15em; color: #aaa; margin-bottom: 40px;
+    text-align: center;
+  }
+  .auth-form {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    width: 100%; max-width: 320px; padding: 0 20px;
+  }
+  .auth-input {
+    font-family: 'Orbitron',monospace,sans-serif;
+    font-size: .7rem; letter-spacing: .1em;
+    color: #ccc; background: transparent;
+    border: 1px solid rgba(255,255,255,.1);
+    padding: 14px 18px; width: 100%;
+    outline: none; transition: all .3s ease;
+  }
+  .auth-input::placeholder { color: #333; letter-spacing: .15em; }
+  .auth-input:focus { border-color: rgba(255,255,255,.3); }
+  .auth-submit {
+    font-family: 'Orbitron',monospace,sans-serif;
+    font-size: .7rem; font-weight: 700;
+    letter-spacing: .2em; text-transform: uppercase;
+    color: #fff; background: transparent;
+    border: 1px solid rgba(255,255,255,.25);
+    padding: 14px 40px; cursor: pointer;
+    transition: all .3s ease; margin-top: 10px; width: 100%;
+  }
+  .auth-submit:hover { border-color: rgba(255,0,0,.5); color: #ff3333; }
+  .auth-back {
+    font-family: 'Orbitron',monospace,sans-serif;
+    font-size: .5rem; letter-spacing: .15em;
+    color: #333; background: none; border: none;
+    cursor: pointer; margin-top: 20px; transition: color .3s;
+  }
+  .auth-back:hover { color: #888; }
+  .auth-error {
+    font-size: .5rem; letter-spacing: .1em;
+    color: #ff3333; min-height: 1em; text-align: center;
+  }
+
+  /* ─── Game ─── */
+  #game .turn-label {
+    font-size: clamp(.6rem,1.5vw,.75rem);
+    letter-spacing: .25em; color: #555;
+    margin-bottom: 24px; min-height: 1.2em;
+    transition: color .3s; text-align: center;
+  }
+  #game .turn-label.x-turn { color: #fff; }
+  #game .turn-label.o-turn { color: #ff0000; }
+  #game .turn-label.wait { color: #444; animation: blink 1.5s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .board {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 6px;
+    width: clamp(260px,50vmin,360px); height: clamp(260px,50vmin,360px);
+  }
+  .cell {
+    background: rgba(255,255,255,.06);
+    border: 1.5px solid rgba(255,255,255,.35);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background .3s ease, border-color .3s ease;
+    position: relative; user-select: none;
+    aspect-ratio: 1; overflow: hidden;
+  }
+  .cell:hover:not(.taken) {
+    background: rgba(255,255,255,.05);
+    border-color: rgba(255,255,255,.2);
+  }
+  .cell .mark {
+    font-size: clamp(2rem,8vmin,4.5rem); font-weight: 900; line-height: 1;
+    opacity: 0; transform: scale(.5);
+    transition: all .35s cubic-bezier(.34,1.56,.64,1);
+  }
+  .cell .mark.show { opacity: 1; transform: scale(1); }
+  .cell .mark.x { color: #fff; }
+  .cell .mark.o { color: #ff0000; text-shadow: 0 0 15px rgba(255,0,0,.4); }
+
+  .score-board {
+    display: flex; gap: 40px; margin-top: 28px; opacity: .5;
+  }
+  .score-item { text-align: center; }
+  .score-item .label {
+    font-size: .45rem; letter-spacing: .15em; color: #333; margin-bottom: 4px;
+  }
+  .score-item .val { font-size: 1rem; font-weight: 700; }
+  .score-item.s-x .val { color: #fff; }
+  .score-item.s-o .val { color: #ff0000; }
+  .score-item.s-d .val { color: #333; }
+
+  .game-footer {
+    position: fixed; bottom: 28px; left: 0; right: 0;
+    display: flex; justify-content: center; align-items: center; gap: 30px;
+    z-index: 20;
+  }
+  .footer-pts {
+    font-size: .5rem; letter-spacing: .15em; color: #333;
+  }
+  .footer-pts span { color: #666; font-weight: 700; }
+
+  .back-btn {
+    font-family: 'Orbitron',monospace,sans-serif;
+    font-size: .55rem; letter-spacing: .2em; text-transform: uppercase;
+    color: #888; background: rgba(255,255,255,.06);
+    border: 1.5px solid rgba(255,255,255,.35);
+    padding: 8px 18px; cursor: pointer;
+    transition: all .3s ease;
+  }
+  .back-btn:hover { color: #ccc; border-color: rgba(255,255,255,.5); }
+
+  .game-top-bar {
+    position: fixed; top: 20px; left: 20px; right: 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 60;
+  }
+  .game-pts {
+    font-size: .55rem; letter-spacing: .15em; color: #333;
+    border: 1px solid rgba(255,255,255,.08);
+    padding: 8px 18px;
+  }
+  .game-pts span { color: #666; font-weight: 700; }
+
+  /* ─── Result ─── */
+  .result-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.92);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .result-overlay.show { display: flex; animation: fadeIn .6s ease; }
+  .result-text {
+    font-size: clamp(1.2rem,4vw,2.2rem); font-weight: 900;
+    letter-spacing: .15em; margin-bottom: 10px; text-align: center;
+  }
+  .result-text.x-win { color: #fff; }
+  .result-text.o-win { color: #ff0000; text-shadow: 0 0 30px rgba(255,0,0,.4); }
+  .result-text.draw { color: #555; }
+  .result-pts {
+    font-size: clamp(.5rem,1.2vw,.65rem); letter-spacing: .15em;
+    color: #444; margin-bottom: 40px;
+  }
+  .result-pts span { color: #888; font-weight: 700; }
+  .restart-btn {
+    font-family: 'Orbitron',monospace,sans-serif;
+    font-size: clamp(.7rem,1.5vw,.85rem); font-weight: 700;
+    letter-spacing: .25em; text-transform: uppercase;
+    color: #888; background: transparent;
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 14px 45px; cursor: pointer; transition: all .3s ease;
+  }
+  .restart-btn:hover { color: #fff; border-color: rgba(255,255,255,.4); }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  /* ─── Leaderboard ─── */
+  .lb-title {
+    font-size: clamp(.8rem,2vw,1rem); font-weight: 700;
+    letter-spacing: .15em; color: #aaa; margin-bottom: 30px; text-align: center;
+  }
+  .lb-table {
+    width: 100%; max-width: 380px; border-collapse: collapse;
+  }
+  .lb-row {
+    display: flex; align-items: center; padding: 10px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    transition: background .3s;
+  }
+  .lb-row:hover { background: rgba(255,255,255,.02); }
+  .lb-row.header { color: #333; font-size: .45rem; letter-spacing: .2em; text-transform: uppercase; border-bottom-color: rgba(255,255,255,.1); }
+  .lb-row.you { background: rgba(255,255,255,.03); }
+  .lb-rank {
+    width: 36px; font-size: .6rem; font-weight: 700; color: #333;
+    flex-shrink: 0;
+  }
+  .lb-rank.top1 { color: #ffd700; }
+  .lb-rank.top2 { color: #c0c0c0; }
+  .lb-rank.top3 { color: #cd7f32; }
+  .lb-name {
+    flex: 1; font-size: .6rem; letter-spacing: .08em;
+    color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .lb-row.you .lb-name { color: #ff3333; }
+  .lb-pts {
+    font-size: .65rem; font-weight: 700; color: #555; text-align: right;
+    flex-shrink: 0; min-width: 50px;
+  }
+  .lb-row.you .lb-pts { color: #ff4444; }
+  .lb-empty {
+    font-size: .5rem; color: #333; letter-spacing: .1em; text-align: center;
+    padding: 30px 0;
+  }
+  .lb-nav {
+    display: flex; justify-content: center; margin-top: 24px;
+  }
+
+  .cell.winner { animation: cellFlash .6s ease 3; }
+  @keyframes cellFlash { 0%,100%{background:rgba(255,255,255,.02)} 50%{background:rgba(255,255,255,.1)} }
+  .cell.winner.o-cell { animation: cellFlashRed .6s ease 3; }
+  @keyframes cellFlashRed { 0%,100%{background:rgba(255,255,255,.02)} 50%{background:rgba(255,0,0,.1)} }
+
+  /* ─── Confirm ─── */
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.88);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 200;
+  }
+  .confirm-overlay.show { display: flex; }
+  .confirm-text {
+    font-size: clamp(.7rem,2vw,.95rem); font-weight: 700;
+    letter-spacing: .1em; color: #aaa; margin-bottom: 40px; text-align: center;
+    padding: 0 20px;
+  }
+  .confirm-btns { display: flex; gap: 20px; }
+  .confirm-btns button {
+    font-family: 'Orbitron',monospace,sans-serif;
+    font-size: clamp(.6rem,1.4vw,.75rem); font-weight: 700;
+    letter-spacing: .2em; text-transform: uppercase;
+    padding: 14px 38px; cursor: pointer;
+    transition: all .3s ease; background: transparent;
+  }
+  .confirm-yes { color: #ff3333; border: 1px solid rgba(255,0,0,.3); }
+  .confirm-yes:hover { border-color: rgba(255,0,0,.7); box-shadow: 0 0 25px rgba(255,0,0,.15); }
+  .confirm-no { color: #666; border: 1px solid rgba(255,255,255,.1); }
+  .confirm-no:hover { color: #aaa; border-color: rgba(255,255,255,.3); }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="scanline"></div>
+
+<!-- ═══ MENU ═══ -->
+<div class="screen active" id="menu">
+  <div class="menu-user" id="menuUser"></div>
+  <div class="hal-eye"></div>
+  <div class="title">Крестики-Нолики</div>
+  <button class="menu-btn primary" id="btnOffline">Играть оффлайн</button>
+  <button class="menu-btn ai" id="btnAI">Играть с компьютером</button>
+  <button class="menu-btn lb" id="btnLeaderboard">Рейтинг игроков</button>
+  <button class="menu-btn online" id="btnOnline" style="display:none">Играть онлайн</button>
+  <button class="menu-btn auth" id="btnLogin">Войти</button>
+  <button class="menu-btn register" id="btnRegister">Регистрация</button>
+  <button class="menu-btn logout" id="btnLogout" style="display:none">Выйти</button>
+</div>
+
+<!-- ═══ LOGIN ═══ -->
+<div class="screen" id="loginScreen">
+  <div class="auth-title">Вход</div>
+  <form class="auth-form" id="loginForm" autocomplete="off">
+    <input class="auth-input" type="text" placeholder="Никнейм" required id="loginEmail">
+    <input class="auth-input" type="password" placeholder="Пароль" required id="loginPass">
+    <button class="auth-submit" type="submit">Войти</button>
+    <div class="auth-error" id="loginError"></div>
+  </form>
+  <button class="auth-back" id="loginBack">← Назад</button>
+</div>
+
+<!-- ═══ REGISTER ═══ -->
+<div class="screen" id="registerScreen">
+  <div class="auth-title">Придумайте логин и пароль</div>
+  <form class="auth-form" id="registerForm" autocomplete="off">
+    <input class="auth-input" type="text" placeholder="Никнейм" required id="regEmail">
+    <input class="auth-input" type="password" placeholder="Пароль" required id="regPass">
+    <button class="auth-submit" type="submit">Зарегистрироваться</button>
+    <div class="auth-error" id="regError"></div>
+  </form>
+  <button class="auth-back" id="regBack">← Назад</button>
+</div>
+
+<!-- ═══ WAITING ═══ -->
+<div class="screen" id="waitScreen">
+  <div class="turn-label wait" id="waitLabel">Поиск противника...</div>
+  <div class="hal-eye" style="width:60px;height:60px;margin-bottom:30px"></div>
+  <button class="back-btn" id="waitBack">← В меню</button>
+</div>
+
+<!-- ═══ GAME ═══ -->
+<div class="screen" id="game">
+  <div class="game-top-bar">
+    <button class="back-btn" id="backBtn">← В меню</button>
+    <div class="game-pts" id="gamePts">100</div>
+  </div>
+  <div class="turn-label x-turn" id="turnLabel">Ход: Крестик</div>
+  <div class="board" id="board"></div>
+</div>
+
+<!-- ═══ RESULT ═══ -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-text" id="resultText"></div>
+  <div class="result-pts" id="resultPts"></div>
+  <button class="restart-btn" id="restartBtn">Заново</button>
+</div>
+
+<!-- ═══ CONFIRM ═══ -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-text">Вы точно хотите остановить игру?</div>
+  <div class="confirm-btns">
+    <button class="confirm-yes" id="confirmYes">Да</button>
+    <button class="confirm-no" id="confirmNo">Нет</button>
+  </div>
+</div>
+
+<!-- ═══ LEADERBOARD ═══ -->
+<div class="screen" id="leaderboardScreen">
+  <div class="lb-title">Глобальный рейтинг</div>
+  <div id="lbList"></div>
+  <div class="lb-nav">
+    <button class="back-btn" id="lbBack">← В меню</button>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const boardEl = $('#board');
+const turnLabel = $('#turnLabel');
+const resultOverlay = $('#resultOverlay');
+const resultText = $('#resultText');
+const resultPts = $('#resultPts');
+
+let cells = Array(9).fill(null);
+let current = 'X';
+let gameOver = false;
+let scores = { X: 0, O: 0, D: 0 };
+
+// ─── Auth State ───
+let token = localStorage.getItem('ttt_token') || null;
+let userEmail = localStorage.getItem('ttt_email') || null;
+let userPoints = parseInt(localStorage.getItem('ttt_points') || '0');
+let gameMode = 'offline'; // offline | online | ai
+let aiSym = null;
+let humanSym = null;
+let onlineGameId = null;
+let onlineMySym = null;
+let pollTimer = null;
+
+// ─── Stars ───
+const starsEl = $('#stars');
+for (let i = 0; i < 100; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.left = Math.random()*100+'%';
+  s.style.top = Math.random()*100+'%';
+  s.style.setProperty('--dur',(2+Math.random()*4)+'s');
+  s.style.setProperty('--max-o',(.3+Math.random()*.7));
+  s.style.animationDelay = Math.random()*3+'s';
+  s.style.width = s.style.height = (1+Math.random()*2)+'px';
+  starsEl.appendChild(s);
+}
+
+// ─── Build Board ───
+for (let i = 0; i < 9; i++) {
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  cell.dataset.index = i;
+  cell.innerHTML = '<span class="mark"></span>';
+  cell.addEventListener('click', () => handleMove(i));
+  boardEl.appendChild(cell);
+}
+
+// ─── API ───
+async function api(path, body, method) {
+  const m = method || (body ? 'POST' : 'GET');
+  const opts = { method: m, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(path, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'error');
+  return data;
+}
+
+// ─── Auth ───
+function saveAuth(d) {
+  token = d.token;
+  userEmail = d.user.email;
+  userPoints = d.points || d.user.points || 0;
+  localStorage.setItem('ttt_token', token);
+  localStorage.setItem('ttt_email', userEmail);
+  localStorage.setItem('ttt_points', userPoints);
+}
+
+function clearAuth() {
+  token = null;
+  userEmail = null;
+  userPoints = 0;
+  localStorage.removeItem('ttt_token');
+  localStorage.removeItem('ttt_email');
+  localStorage.removeItem('ttt_points');
+}
+
+function updateMenu() {
+  const logged = !!token;
+  $('#btnLogin').style.display = logged ? 'none' : '';
+  $('#btnRegister').style.display = logged ? 'none' : '';
+  $('#btnOnline').style.display = logged ? '' : 'none';
+  $('#btnLogout').style.display = logged ? '' : 'none';
+  $('#menuUser').innerHTML = logged
+    ? '<span>' + userEmail + '</span> · ' + userPoints + ' очков'
+    : '';
+}
+
+async function tryRestore() {
+  if (!token) { updateMenu(); return; }
+  try {
+    const d = await api('/api/me');
+    userPoints = d.points;
+    localStorage.setItem('ttt_points', userPoints);
+  } catch { clearAuth(); }
+  updateMenu();
+}
+tryRestore();
+
+// ─── Screens ───
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+// ─── Menu ───
+$('#btnOffline').addEventListener('click', () => {
+  gameMode = 'offline';
+  startGame();
+});
+$('#btnAI').addEventListener('click', () => {
+  gameMode = 'ai';
+  startGame();
+});
+$('#btnOnline').addEventListener('click', startOnline);
+$('#btnLogin').addEventListener('click', () => showScreen('#loginScreen'));
+$('#btnRegister').addEventListener('click', () => showScreen('#registerScreen'));
+$('#btnLogout').addEventListener('click', () => { clearAuth(); updateMenu(); });
+$('#loginBack').addEventListener('click', () => showScreen('#menu'));
+$('#regBack').addEventListener('click', () => showScreen('#menu'));
+$('#waitBack').addEventListener('click', () => {
+  stopPoll();
+  $('#waitLabel').style.color = '';
+  showScreen('#menu');
+});
+
+// ─── Login ───
+$('#loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('#loginError').textContent = '';
+  try {
+    const d = await api('/api/login', {
+      email: $('#loginEmail').value,
+      password: $('#loginPass').value
+    });
+    saveAuth(d);
+    updateMenu();
+    showScreen('#menu');
+    $('#loginForm').reset();
+  } catch (err) {
+    $('#loginError').textContent = err.message;
+  }
+});
+
+// ─── Register ───
+$('#registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('#regError').textContent = '';
+  try {
+    const d = await api('/api/register', {
+      email: $('#regEmail').value,
+      password: $('#regPass').value
+    });
+    saveAuth(d);
+    updateMenu();
+    showScreen('#menu');
+    $('#registerForm').reset();
+  } catch (err) {
+    $('#regError').textContent = err.message;
+  }
+});
+
+// ─── Online Game ───
+async function startOnline() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('#waitScreen').classList.add('active');
+  $('#waitLabel').textContent = 'Поиск противника...';
+  $('#waitLabel').className = 'turn-label wait';
+
+  try {
+    const d = await api('/api/game/create', null, 'POST');
+    onlineGameId = d.game_id;
+    if (d.status === 'waiting') {
+      startPoll();
+    } else {
+      joinOnlineGame();
+    }
+  } catch (err) {
+    $('#waitLabel').textContent = 'Ошибка: ' + err.message;
+    $('#waitLabel').className = 'turn-label';
+    $('#waitLabel').style.color = '#ff3333';
+  }
+}
+
+function startPoll() {
+  stopPoll();
+  pollTimer = setInterval(async () => {
+    try {
+      const d = await api('/api/queue');
+      if (d.status === 'found') {
+        onlineGameId = d.game_id;
+        stopPoll();
+        joinOnlineGame();
+      }
+    } catch {}
+  }, 1200);
+}
+
+function stopPoll() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+async function joinOnlineGame() {
+  try {
+    const g = await api('/api/game/state?id=' + onlineGameId);
+    gameMode = 'online';
+    if (g.player_x === userEmail) onlineMySym = 'X';
+    else onlineMySym = 'O';
+    loadGameState(g);
+    showScreen('#game');
+    updateGamePts();
+    if (g.status === 'active') startGamePoll();
+    else if (g.status === 'waiting') {
+      $('#waitLabel').textContent = 'Ожидание противника...';
+      $('#waitLabel').className = 'turn-label wait';
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      $('#waitScreen').classList.add('active');
+      startPoll();
+    }
+  } catch (err) {
+    $('#waitLabel').textContent = 'Ошибка: ' + err.message;
+    $('#waitLabel').className = 'turn-label';
+    $('#waitLabel').style.color = '#ff3333';
+  }
+}
+
+function startGamePoll() {
+  stopPoll();
+  pollTimer = setInterval(async () => {
+    if (gameOver || !onlineGameId) { stopPoll(); return; }
+    try {
+      const g = await api('/api/game/state?id=' + onlineGameId);
+      loadGameState(g);
+      if (g.status === 'finished') { stopPoll(); showResult(g); }
+    } catch {}
+  }, 1000);
+}
+
+function loadGameState(g) {
+  for (let i = 0; i < 9; i++) {
+    cells[i] = g.board[i] || null;
+    const cell = boardEl.children[i];
+    const mark = cell.querySelector('.mark');
+    if (cells[i]) {
+      mark.textContent = cells[i] === 'X' ? '✕' : '○';
+      mark.className = 'mark ' + cells[i].toLowerCase() + ' show';
+      cell.classList.add('taken');
+    } else {
+      mark.textContent = '';
+      mark.className = 'mark';
+      cell.classList.remove('taken');
+    }
+  }
+  if (g.status === 'active') {
+    const isMyTurn = g.turn === onlineMySym;
+    turnLabel.textContent = isMyTurn ? 'Ваш ход' : 'Ход соперника';
+    turnLabel.className = 'turn-label ' + (isMyTurn ? (onlineMySym === 'X' ? 'x-turn' : 'o-turn') : '');
+  }
+  updateScoresFromServer(g);
+}
+
+// ─── Offline Game ───
+function startGame() {
+  cells = Array(9).fill(null);
+  current = 'X';
+  gameOver = false;
+  resultOverlay.classList.remove('show');
+  showScreen('#game');
+  updateGamePts();
+  document.querySelectorAll('.cell').forEach(c => {
+    c.classList.remove('taken','winner','o-cell');
+    c.querySelector('.mark').textContent = '';
+    c.querySelector('.mark').className = 'mark';
+  });
+  if (gameMode === 'ai') {
+    if (Math.random() < 0.5) { aiSym = 'X'; humanSym = 'O'; }
+    else { aiSym = 'O'; humanSym = 'X'; }
+    updateTurn();
+    if (aiSym === 'X') {
+      boardEl.style.pointerEvents = 'none';
+      setTimeout(aiMove, 500 + Math.random() * 400);
+    }
+  } else {
+    updateTurn();
+  }
+}
+
+function updateTurn() {
+  if (gameMode === 'online') return;
+  turnLabel.textContent = current === 'X' ? 'Ход: Крестик' : 'Ход: Нолик';
+  turnLabel.className = 'turn-label ' + (current === 'X' ? 'x-turn' : 'o-turn');
+}
+
+function handleMove(i) {
+  if (gameOver || cells[i]) return;
+
+  if (gameMode === 'online') {
+    handleOnlineMove(i);
+    return;
+  }
+
+  if (gameMode === 'ai' && current !== humanSym) return;
+
+  cells[i] = current;
+  const cell = boardEl.children[i];
+  const mark = cell.querySelector('.mark');
+  mark.textContent = current === 'X' ? '✕' : '○';
+  mark.className = 'mark ' + current.toLowerCase() + ' show';
+  cell.classList.add('taken');
+
+  const wc = checkWin(cells, current);
+  if (wc) {
+    gameOver = true;
+    scores[current]++;
+    updateScores();
+    setTimeout(() => showResultLocal(current, 1), 400);
+    return;
+  }
+
+  const filledCount = cells.filter(c => c !== null).length;
+
+  if (filledCount === 9) {
+    gameOver = true;
+    scores.D++;
+    updateScores();
+    setTimeout(() => showResultLocal(null, 0), 400);
+    return;
+  }
+
+  current = current === 'X' ? 'O' : 'X';
+  updateTurn();
+
+  if (gameMode === 'ai' && current === aiSym && !gameOver) {
+    boardEl.style.pointerEvents = 'none';
+    setTimeout(aiMove, 400 + Math.random() * 400);
+  }
+}
+
+function aiMove() {
+  if (gameOver) return;
+  const pos = aiBestMove();
+  if (pos === -1) return;
+  cells[pos] = aiSym;
+  const cell = boardEl.children[pos];
+  const mark = cell.querySelector('.mark');
+  mark.textContent = aiSym === 'X' ? '✕' : '○';
+  mark.className = 'mark ' + aiSym.toLowerCase() + ' show';
+  cell.classList.add('taken');
+
+  const wc = checkWin(cells, aiSym);
+  if (wc) {
+    gameOver = true;
+    scores[aiSym]++;
+    updateScores();
+    setTimeout(() => showResultLocal(aiSym, 1), 400);
+    return;
+  }
+
+  const filledCount = cells.filter(c => c !== null).length;
+  if (filledCount === 9) {
+    gameOver = true;
+    scores.D++;
+    updateScores();
+    setTimeout(() => showResultLocal(null, 0), 400);
+    return;
+  }
+
+  current = aiSym === 'X' ? 'O' : 'X';
+  updateTurn();
+  boardEl.style.pointerEvents = '';
+}
+
+function aiBestMove() {
+  let best = -1, bestScore = -Infinity;
+  for (let i = 0; i < 9; i++) {
+    if (!cells[i]) {
+      cells[i] = aiSym;
+      const s = aiMinimax(cells, 0, false);
+      cells[i] = null;
+      if (s > bestScore) { bestScore = s; best = i; }
+    }
+  }
+  return best;
+}
+
+function aiMinimax(b, depth, isMax) {
+  const w = aiCheckWin(b);
+  if (w === aiSym) return 10 - depth;
+  if (w === humanSym) return depth - 10;
+  if (!b.includes(null)) return 0;
+  if (isMax) {
+    let best = -Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (!b[i]) { b[i] = aiSym; best = Math.max(best, aiMinimax(b, depth+1, false)); b[i] = null; }
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (!b[i]) { b[i] = humanSym; best = Math.min(best, aiMinimax(b, depth+1, true)); b[i] = null; }
+    }
+    return best;
+  }
+}
+
+function aiCheckWin(b) {
+  const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for (const [a,c,d] of lines) {
+    if (b[a] && b[a] === b[c] && b[a] === b[d]) return b[a];
+  }
+  return null;
+}
+
+function checkWin(b, sym) { return aiCheckWin(b) === sym; }
+
+async function handleOnlineMove(i) {
+  try {
+    turnLabel.textContent = 'Ожидание...';
+    turnLabel.className = 'turn-label';
+    const g = await api('/api/game/move', { game_id: onlineGameId, pos: i });
+    loadGameState(g);
+    if (g.status === 'finished') {
+      stopPoll();
+      showResult(g);
+    }
+  } catch (err) {
+    // move rejected, reload state
+    try {
+      const g = await api('/api/game/state?id=' + onlineGameId);
+      loadGameState(g);
+    } catch {}
+  }
+}
+
+function updateScores() {
+  const sx = $('#scoreX'), sd = $('#scoreD'), so = $('#scoreO');
+  if (sx) sx.textContent = scores.X;
+  if (sd) sd.textContent = scores.D;
+  if (so) so.textContent = scores.O;
+}
+
+function updateScoresFromServer(g) {
+  if (g.wins_x !== undefined) {
+    scores.X = g.wins_x;
+    scores.O = g.wins_o;
+    scores.D = g.draws;
+    updateScores();
+  }
+}
+
+function updateGamePts() {
+  const el = $('#gamePts');
+  if (!el) return;
+  if (gameMode === 'online') {
+    el.innerHTML = '<span>' + userPoints + '</span> очков';
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// ─── Result ───
+function showResultLocal(winner, pts) {
+  if (winner) {
+    if (gameMode === 'ai') {
+      if (winner === humanSym) {
+        resultText.textContent = 'Вы победили';
+        resultText.className = 'result-text x-win';
+      } else {
+        resultText.textContent = 'T-800 Победил';
+        resultText.className = 'result-text o-win';
+      }
+    } else {
+      resultText.textContent = winner === 'X' ? 'Крестик победил' : 'Нолик победил';
+      resultText.className = 'result-text ' + (winner === 'X' ? 'x-win' : 'o-win');
+    }
+    resultPts.innerHTML = '';
+    document.querySelectorAll('.cell').forEach(c => {
+      const mk = c.querySelector('.mark');
+      if (mk.textContent === (winner === 'X' ? '✕' : '○')) {
+        c.classList.add('winner');
+        if (winner === 'O') c.classList.add('o-cell');
+      }
+    });
+  } else {
+    resultText.textContent = 'Ничья';
+    resultText.className = 'result-text draw';
+    resultPts.innerHTML = '';
+  }
+  resultOverlay.classList.add('show');
+}
+
+function showResult(g) {
+  const winner = g.winner;
+  const isMe = winner === onlineMySym;
+  const pts = g.points || 0;
+
+  if (winner) {
+    if (isMe) {
+      resultText.textContent = 'Победа';
+      resultText.className = 'result-text x-win';
+      resultPts.innerHTML = '+<span>' + pts + '</span> ' + (pts === 2 ? 'очков' : 'очко');
+    } else {
+      resultText.textContent = 'Поражение';
+      resultText.className = 'result-text o-win';
+      resultPts.innerHTML = '-<span>1</span> очко';
+    }
+    document.querySelectorAll('.cell').forEach(c => {
+      const mk = c.querySelector('.mark');
+      if (mk.textContent === (winner === 'X' ? '✕' : '○')) {
+        c.classList.add('winner');
+        if (winner === 'O') c.classList.add('o-cell');
+      }
+    });
+  } else {
+    resultText.textContent = 'Ничья';
+    resultText.className = 'result-text draw';
+    resultPts.innerHTML = '';
+  }
+  updateScoresFromServer(g);
+  resultOverlay.classList.add('show');
+
+  // refresh points
+  if (token) {
+    api('/api/me').then(d => {
+      userPoints = d.points;
+      localStorage.setItem('ttt_points', userPoints);
+      updateMenu();
+    }).catch(() => {});
+  }
+}
+
+// ─── Back / Restart ───
+$('#backBtn').addEventListener('click', () => {
+  if (!gameOver && gameMode === 'online') {
+    $('#confirmOverlay').classList.add('show');
+  } else if (!gameOver) {
+    $('#confirmOverlay').classList.add('show');
+  } else {
+    goToMenu();
+  }
+});
+$('#confirmYes').addEventListener('click', goToMenu);
+$('#confirmNo').addEventListener('click', () => $('#confirmOverlay').classList.remove('show'));
+
+$('#restartBtn').addEventListener('click', () => {
+  resultOverlay.classList.remove('show');
+  if (gameMode === 'online') {
+    onlineGameId = null;
+    startOnline();
+  } else {
+    startGame();
+  }
+});
+
+function goToMenu() {
+  stopPoll();
+  $('#confirmOverlay').classList.remove('show');
+  resultOverlay.classList.remove('show');
+  onlineGameId = null;
+  gameMode = 'offline';
+  scores = { X: 0, O: 0, D: 0 };
+  updateScores();
+  showScreen('#menu');
+  updateMenu();
+}
+// ─── Leaderboard ───
+$('#btnLeaderboard').addEventListener('click', loadLeaderboard);
+$('#lbBack').addEventListener('click', () => showScreen('#menu'));
+
+async function loadLeaderboard() {
+  showScreen('#leaderboardScreen');
+  $('#lbList').innerHTML = '<div class="lb-empty">Загрузка...</div>';
+  try {
+    const d = await api('/api/leaderboard');
+    const list = d.leaderboard || [];
+    if (!list.length) {
+      $('#lbList').innerHTML = '<div class="lb-empty">Пока нет игроков</div>';
+      return;
+    }
+    const medals = ['top1','top2','top3'];
+    let html = '<div class="lb-table">';
+    html += '<div class="lb-row header"><div class="lb-rank">#</div><div class="lb-name">Игрок</div><div class="lb-pts">Очки</div></div>';
+    list.forEach((e, i) => {
+      const rankClass = i < 3 ? medals[i] : '';
+      const youClass = token && e.email === userEmail ? ' you' : '';
+      html += `<div class="lb-row${youClass}"><div class="lb-rank ${rankClass}">${i+1}</div><div class="lb-name">${escapeHtml(e.email)}</div><div class="lb-pts">${e.points}</div></div>`;
+    });
+    html += '</div>';
+    $('#lbList').innerHTML = html;
+  } catch {
+    $('#lbList').innerHTML = '<div class="lb-empty">Ошибка загрузки</div>';
+  }
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+</script>
+</body>
+</html>
