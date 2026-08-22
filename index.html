@@ -209,6 +209,14 @@
   #game .turn-label.wait { color: var(--gray); animation: blink 1.5s ease-in-out infinite; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
+  .turn-timer {
+    font-size: clamp(.55rem,1.3vw,.7rem); letter-spacing: .2em; color: var(--gray);
+    margin-bottom: 14px; min-height: 1.2em; text-align: center;
+    transition: color .3s;
+  }
+  .turn-timer.warning { color: var(--accent); animation: blink 1s ease-in-out infinite; }
+  .turn-timer.hidden { display: none; }
+
   .board {
     display: grid; grid-template-columns: repeat(3,1fr); gap: 6px;
     width: clamp(260px,50vmin,360px); height: clamp(260px,50vmin,360px);
@@ -535,6 +543,7 @@
     <div class="game-pts" id="gamePts">100</div>
   </div>
   <div class="turn-label x-turn" id="turnLabel">Ход: Крестик</div>
+  <div class="turn-timer" id="turnTimer"></div>
   <div class="board" id="board"></div>
 </div>
 
@@ -611,6 +620,7 @@ let onlineGameId = null;
 let onlineMySym = null;
 let pollTimer = null;
 let aiTimer = null;
+let turnTimer = null;
 
 // ─── Stars ───
 const starsEl = $('#stars');
@@ -792,6 +802,32 @@ function stopPoll() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 }
 
+function startTurnTimer(turnStartedAt) {
+  stopTurnTimer();
+  if (!turnStartedAt || gameMode !== 'online') return;
+  const timerEl = $('#turnTimer');
+  timerEl.classList.remove('hidden');
+  function tick() {
+    const elapsed = (Date.now() / 1000) - turnStartedAt;
+    const left = Math.max(0, 30 - Math.floor(elapsed));
+    timerEl.textContent = left + 'с';
+    if (left <= 10) timerEl.classList.add('warning');
+    else timerEl.classList.remove('warning');
+    if (left <= 0) {
+      timerEl.textContent = 'Время вышло';
+      stopTurnTimer();
+    }
+  }
+  tick();
+  turnTimer = setInterval(tick, 200);
+}
+
+function stopTurnTimer() {
+  if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
+  const timerEl = $('#turnTimer');
+  if (timerEl) { timerEl.textContent = ''; timerEl.classList.remove('warning'); timerEl.classList.add('hidden'); }
+}
+
 async function joinOnlineGame() {
   try {
     const g = await api('/api/game/state?id=' + onlineGameId);
@@ -804,6 +840,7 @@ async function joinOnlineGame() {
     showScreen('#game');
     updateGamePts();
     if (g.status === 'active') startGamePoll();
+    else if (g.status === 'finished') { gameOver = true; showResult(g); }
     else if (g.status === 'waiting') {
       $('#waitLabel').textContent = 'Ожидание противника...';
       $('#waitLabel').className = 'turn-label wait';
@@ -849,6 +886,10 @@ function loadGameState(g) {
     const isMyTurn = g.turn === onlineMySym;
     turnLabel.textContent = isMyTurn ? 'Ваш ход' : 'Ход соперника';
     turnLabel.className = 'turn-label ' + (isMyTurn ? (onlineMySym === 'X' ? 'x-turn' : 'o-turn') : '');
+    if (isMyTurn) startTurnTimer(g.turn_started_at);
+    else stopTurnTimer();
+  } else {
+    stopTurnTimer();
   }
   updateScoresFromServer(g);
 }
@@ -1160,6 +1201,7 @@ $('#restartBtn').addEventListener('click', () => {
 
 function goToMenu() {
   stopPoll();
+  stopTurnTimer();
   if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
   $('#confirmOverlay').classList.remove('show');
   resultOverlay.classList.remove('show');

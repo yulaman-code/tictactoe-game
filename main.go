@@ -54,6 +54,7 @@ func initDB() {
 		points_won INTEGER DEFAULT 0,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`)
+	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS turn_started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS game_players (
 		game_id TEXT,
 		user_id INTEGER
@@ -136,9 +137,10 @@ func getGame(id string) (*GameState, error) {
 	g := &GameState{ID: id}
 	var board, px, po, st, wi string
 	var pw int
+	var tsa time.Time
 	err := db.QueryRow(
-		"SELECT COALESCE(board,'[]'), COALESCE(turn,'X'), COALESCE(player_x,''), COALESCE(player_o,''), COALESCE(status,'waiting'), COALESCE(winner,''), COALESCE(points_won,0) FROM games WHERE id=$1", id,
-	).Scan(&board, &g.Turn, &px, &po, &st, &wi, &pw)
+		"SELECT COALESCE(board,'[]'), COALESCE(turn,'X'), COALESCE(player_x,''), COALESCE(player_o,''), COALESCE(status,'waiting'), COALESCE(winner,''), COALESCE(points_won,0), COALESCE(turn_started_at,created_at) FROM games WHERE id=$1", id,
+	).Scan(&board, &g.Turn, &px, &po, &st, &wi, &pw, &tsa)
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +149,7 @@ func getGame(id string) (*GameState, error) {
 	g.Status = st
 	g.Winner = wi
 	g.Points = pw
+	g.TurnStartedAt = tsa.Unix()
 	json.Unmarshal([]byte(board), &g.Board)
 	db.QueryRow("SELECT COUNT(*) FROM games WHERE status='finished'").Scan(&g.TotalGames)
 	db.QueryRow("SELECT COUNT(*) FROM games WHERE status='finished' AND winner='X'").Scan(&g.WinsX)
@@ -157,8 +160,50 @@ func getGame(id string) (*GameState, error) {
 
 func updateGame(g *GameState) {
 	b, _ := json.Marshal(g.Board)
-	db.Exec("UPDATE games SET board=$1, turn=$2, status=$3, winner=$4, points_won=$5 WHERE id=$6",
-		string(b), g.Turn, g.Status, g.Winner, g.Points, g.ID)
+	db.Exec("UPDATE games SET board=$1, turn=$2, status=$3, winner=$4, points_won=$5, turn_started_at=to_timestamp($6) WHERE id=$7",
+		string(b), g.Turn, g.Status, g.Winner, g.Points, g.TurnStartedAt, g.ID)
+}
+
+const turnTimeout = 30 * time.Second
+
+func checkTimeout(g *GameState) {
+	if g.Status != "active" {
+		return
+	}
+	if g.TurnStartedAt == 0 {
+		return
+	}
+	elapsed := time.Since(time.Unix(g.TurnStartedAt, 0))
+	if elapsed < turnTimeout {
+		return
+	}
+	loser := g.Turn
+	winner := "O"
+	if loser == "O" {
+		winner = "X"
+	}
+	g.Winner = winner
+	g.Status = "finished"
+	g.Points = 1
+	if winner == "X" && g.PlayerX != "" {
+		if u, e := getUserByEmail(g.PlayerX); e == nil {
+			addPoints(u.ID, 1)
+		}
+	} else if winner == "O" && g.PlayerO != "" {
+		if u, e := getUserByEmail(g.PlayerO); e == nil {
+			addPoints(u.ID, 1)
+		}
+	}
+	if loser == "X" && g.PlayerX != "" {
+		if u, e := getUserByEmail(g.PlayerX); e == nil {
+			addPoints(u.ID, -1)
+		}
+	} else if loser == "O" && g.PlayerO != "" {
+		if u, e := getUserByEmail(g.PlayerO); e == nil {
+			addPoints(u.ID, -1)
+		}
+	}
+	updateGame(g)
 }
 
 func setGamePlayers(gid, px, po string) {
@@ -242,18 +287,19 @@ type User struct {
 }
 
 type GameState struct {
-	ID         string   `json:"id"`
-	Board      []string `json:"board"`
-	Turn       string   `json:"turn"`
-	PlayerX    string   `json:"player_x"`
-	PlayerO    string   `json:"player_o"`
-	Status     string   `json:"status"`
-	Winner     string   `json:"winner"`
-	Points     int      `json:"points"`
-	TotalGames int      `json:"total_games"`
-	WinsX      int      `json:"wins_x"`
-	WinsO      int      `json:"wins_o"`
-	Draws      int      `json:"draws"`
+	ID            string   `json:"id"`
+	Board         []string `json:"board"`
+	Turn          string   `json:"turn"`
+	PlayerX       string   `json:"player_x"`
+	PlayerO       string   `json:"player_o"`
+	Status        string   `json:"status"`
+	Winner        string   `json:"winner"`
+	Points        int      `json:"points"`
+	TotalGames    int      `json:"total_games"`
+	WinsX         int      `json:"wins_x"`
+	WinsO         int      `json:"wins_o"`
+	Draws         int      `json:"draws"`
+	TurnStartedAt int64    `json:"turn_started_at"`
 }
 
 type Claims struct {
@@ -437,6 +483,7 @@ func handleCreateGame(w http.ResponseWriter, r *http.Request, c *Claims) {
 		}
 		g.Turn = "X"
 		g.Board = make([]string, 9)
+		g.TurnStartedAt = time.Now().Unix()
 		updateGame(g)
 		setGamePlayers(waiting, g.PlayerX, g.PlayerO)
 		joinGame(waiting, fmt.Sprintf("%d", c.UserID))
@@ -469,6 +516,7 @@ func handleJoinGame(w http.ResponseWriter, r *http.Request, c *Claims) {
 		jsonErr(w, "not your game", 403)
 		return
 	}
+	checkTimeout(g)
 	jsonResp(w, g)
 }
 
@@ -496,6 +544,11 @@ func handleMove(w http.ResponseWriter, r *http.Request, c *Claims) {
 	}
 	if g.Status == "waiting" {
 		jsonErr(w, "waiting for opponent", 400)
+		return
+	}
+	checkTimeout(g)
+	if g.Status == "finished" {
+		jsonResp(w, g)
 		return
 	}
 
@@ -558,6 +611,7 @@ _email := c.Email
 			} else {
 				g.Turn = "X"
 			}
+			g.TurnStartedAt = time.Now().Unix()
 		}
 	}
 
@@ -576,6 +630,7 @@ func handleQueue(w http.ResponseWriter, r *http.Request, c *Claims) {
 	if gid != "" {
 		g, _ := getGame(gid)
 		if g != nil && g.Status == "active" {
+			checkTimeout(g)
 			jsonResp(w, map[string]interface{}{"status": "found", "game_id": gid, "game": g})
 			return
 		}
