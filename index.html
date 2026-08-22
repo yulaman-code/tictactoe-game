@@ -46,7 +46,7 @@
     background: radial-gradient(circle,#ff0000 0%,#cc0000 40%,#660000 70%,#000 100%);
     box-shadow: 0 0 40px rgba(255,0,0,.4), 0 0 80px rgba(255,0,0,.15);
     margin-bottom: 40px;
-    animation: hal-pulse 3s ease-in-out infinite, fadeSlideIn 1.5s ease-out .5s both;
+    animation: hal-pulse 3s ease-in-out infinite, fadeSlideIn .75s ease-out .25s both;
   }
   @keyframes hal-pulse {
     0%,100%{box-shadow:0 0 40px rgba(255,0,0,.4),0 0 80px rgba(255,0,0,.15)}
@@ -57,7 +57,7 @@
     letter-spacing: .15em; text-transform: uppercase; margin-bottom: 50px;
     background: linear-gradient(180deg,#fff 30%,#888 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    animation: fadeSlideIn 1.5s ease-out;
+    animation: fadeSlideIn .75s ease-out;
   }
 
   .menu-btn {
@@ -74,22 +74,22 @@
     color: #fff; border-color: rgba(255,255,255,.5);
   }
   .menu-btn.primary {
-    animation: fadeSlideIn 1.5s ease-out .7s both;
+    animation: fadeSlideIn .75s ease-out .35s both;
   }
   .menu-btn.primary:hover {
     border-color: rgba(255,255,255,.5);
   }
-  .menu-btn.auth { animation: fadeSlideIn 1.5s ease-out .9s both; }
-  .menu-btn.register { animation: fadeSlideIn 1.5s ease-out 1.1s both; }
-  .menu-btn.online { animation: fadeSlideIn 1.5s ease-out 1.3s both; }
-  .menu-btn.ai { animation: fadeSlideIn 1.5s ease-out .8s both; }
-  .menu-btn.lb { animation: fadeSlideIn 1.5s ease-out 1.2s both; }
-  .menu-btn.logout { animation: fadeSlideIn 1.5s ease-out 1.5s both; }
+  .menu-btn.auth {     animation: fadeSlideIn .75s ease-out .45s both; }
+  .menu-btn.register {     animation: fadeSlideIn .75s ease-out .55s both; }
+  .menu-btn.online {     animation: fadeSlideIn .75s ease-out .65s both; }
+  .menu-btn.ai {     animation: fadeSlideIn .75s ease-out .4s both; }
+  .menu-btn.lb {     animation: fadeSlideIn .75s ease-out .6s both; }
+  .menu-btn.logout {     animation: fadeSlideIn .75s ease-out .75s both; }
   .menu-btn.logout:hover { color: #ff3333; border-color: rgba(255,0,0,.5); }
 
   .menu-user {
     font-size: .5rem; letter-spacing: .2em; color: #888;
-    margin-bottom: 30px; animation: fadeSlideIn 1.5s ease-out .6s both;
+    margin-bottom: 30px;     animation: fadeSlideIn .75s ease-out .3s both;
   }
   .menu-user span { color: #fff; }
 
