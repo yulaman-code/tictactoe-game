@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math"
 	"math/big"
 	"net/http"
 	"os"
@@ -254,24 +253,6 @@ func recordMove(gid, pos, sym string) {
 	if err != nil {
 		log.Printf("recordMove error: %v", err)
 	}
-}
-
-func getMoveCount(gid string) int {
-	var c int
-	err := db.QueryRow("SELECT COUNT(*) FROM moves WHERE game_id=$1", gid).Scan(&c)
-	if err != nil {
-		log.Printf("getMoveCount error: %v", err)
-	}
-	log.Printf("getMoveCount game=%s count=%d", gid, c)
-	return c
-}
-
-func hasActiveGame(uid int64) bool {
-	var c int
-	db.QueryRow(`SELECT COUNT(*) FROM game_players gp
-		JOIN games g ON gp.game_id=g.id
-		WHERE gp.user_id=$1 AND g.status IN ('waiting','active')`, uid).Scan(&c)
-	return c > 0
 }
 
 func getActiveGameID(uid int64) string {
@@ -696,7 +677,11 @@ func handleQueue(w http.ResponseWriter, r *http.Request, c *Claims) {
 }
 
 func handleLeaderboard(w http.ResponseWriter, r *http.Request) {
-	rows, err := db.Query("SELECT email, points FROM users ORDER BY points DESC LIMIT 50")
+	if r.Method != "GET" {
+		jsonErr(w, "method not allowed", 405)
+		return
+	}
+	rows, err := db.Query("SELECT email, points FROM users ORDER BY points DESC LIMIT 10")
 	if err != nil {
 		jsonErr(w, "db error", 500)
 		return
@@ -815,8 +800,4 @@ func main() {
 
 	fmt.Printf("Server running on :%s\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
-}
-
-func init() {
-	_ = math.MaxInt64
 }
