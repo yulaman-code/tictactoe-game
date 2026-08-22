@@ -227,6 +227,19 @@ func checkTimeout(g *GameState) {
 	updateGame(g)
 }
 
+func isMathDraw(board []string) bool {
+	lines := [][3]int{{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}}
+	for _, l := range lines {
+		hasX, hasO := false, false
+		for _, i := range l {
+			if board[i] == "X" { hasX = true }
+			if board[i] == "O" { hasO = true }
+		}
+		if !hasX || !hasO { return false }
+	}
+	return true
+}
+
 func setGamePlayers(gid, px, po string) {
 	if px != "" {
 		db.Exec("UPDATE games SET player_x=$1 WHERE id=$2", px, gid)
@@ -647,7 +660,7 @@ func handleMove(w http.ResponseWriter, r *http.Request, c *Claims) {
 				break
 			}
 		}
-		if full {
+		if full || isMathDraw(g.Board) {
 			g.Status = "finished"
 		} else {
 			if sym == "X" {

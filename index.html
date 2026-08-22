@@ -232,6 +232,10 @@
     flex: 1; min-width: 0; transition: border-color .3s;
   }
   .player-card.me { border-color: var(--accent); }
+  .player-card.turn-active {
+    border-color: var(--accent-bright);
+    box-shadow: 0 0 12px var(--accent-glow-sm);
+  }
   .player-sym {
     font-size: 1.1rem; font-weight: 900; line-height: 1; flex-shrink: 0;
   }
@@ -962,6 +966,8 @@ function loadGameState(g) {
     var cx = $('#playerCardX'), co = $('#playerCardO');
     cx.classList.toggle('me', g.player_x === userEmail);
     co.classList.toggle('me', g.player_o === userEmail);
+    cx.classList.toggle('turn-active', g.status === 'active' && g.turn === 'X');
+    co.classList.toggle('turn-active', g.status === 'active' && g.turn === 'O');
   }
   if (g.status === 'active') {
     const isMyTurn = g.turn === onlineMySym;
@@ -1049,6 +1055,14 @@ function handleMove(i) {
     return;
   }
 
+  if (isMathDraw(cells)) {
+    gameOver = true;
+    scores.D++;
+    updateScores();
+    setTimeout(() => showResultLocal(null, 0), 400);
+    return;
+  }
+
   current = current === 'X' ? 'O' : 'X';
   updateTurn();
 
@@ -1081,6 +1095,14 @@ function aiMove() {
 
   const filledCount = cells.filter(c => c !== null).length;
   if (filledCount === 9) {
+    gameOver = true;
+    scores.D++;
+    updateScores();
+    setTimeout(() => showResultLocal(null, 0), 400);
+    return;
+  }
+
+  if (isMathDraw(cells)) {
     gameOver = true;
     scores.D++;
     updateScores();
@@ -1140,6 +1162,16 @@ function aiCheckWin(b) {
 }
 
 function checkWin(b, sym) { return aiCheckWin(b) === sym; }
+
+function isMathDraw(b) {
+  const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for (const l of lines) {
+    const hasX = l.some(i => b[i] === 'X');
+    const hasO = l.some(i => b[i] === 'O');
+    if (!hasX || !hasO) return false;
+  }
+  return true;
+}
 
 async function handleOnlineMove(i) {
   try {
