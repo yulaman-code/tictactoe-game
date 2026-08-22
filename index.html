@@ -378,6 +378,10 @@
     letter-spacing: .1em; color: var(--text); margin-bottom: 40px; text-align: center;
     padding: 0 20px;
   }
+  .confirm-penalty {
+    display: block; font-size: clamp(.55rem,1.5vw,.7rem); font-weight: 700;
+    letter-spacing: .15em; color: var(--accent); margin-bottom: 14px;
+  }
   .confirm-btns { display: flex; gap: 20px; }
   .confirm-btns button {
     font-family: 'Orbitron',monospace,sans-serif;
@@ -1147,16 +1151,17 @@ function showResult(g) {
   const winner = g.winner;
   const isMe = winner === onlineMySym;
   const pts = g.points || 0;
+  const forfeit = g.forfeit;
 
   if (winner) {
     if (isMe) {
-      resultText.textContent = 'Победа';
+      resultText.textContent = forfeit ? 'Ваш противник покинул игру' : 'Победа';
       resultText.className = 'result-text x-win';
-      resultPts.innerHTML = '+<span>' + pts + '</span> ' + (pts === 2 ? 'очков' : 'очко');
+      resultPts.innerHTML = '+<span>' + pts + '</span> ' + (pts === 1 ? 'очко' : 'очков');
     } else {
       resultText.textContent = 'Поражение';
       resultText.className = 'result-text o-win';
-      resultPts.innerHTML = '-<span>1</span> очко';
+      resultPts.innerHTML = '-<span>' + pts + '</span> ' + (pts === 1 ? 'очко' : 'очков');
     }
     document.querySelectorAll('.cell').forEach(c => {
       const mk = c.querySelector('.mark');
@@ -1186,14 +1191,27 @@ function showResult(g) {
 // ─── Back / Restart ───
 $('#backBtn').addEventListener('click', () => {
   if (!gameOver && gameMode === 'online') {
+    $('#confirmText').innerHTML = '<span class="confirm-penalty">Вы потеряете 5 очков</span>Вы точно хотите остановить игру?';
     $('#confirmOverlay').classList.add('show');
   } else if (!gameOver) {
+    $('#confirmText').innerHTML = 'Вы точно хотите остановить игру?';
     $('#confirmOverlay').classList.add('show');
   } else {
     goToMenu();
   }
 });
-$('#confirmYes').addEventListener('click', goToMenu);
+$('#confirmYes').addEventListener('click', async () => {
+  if (gameMode === 'online' && !gameOver && onlineGameId) {
+    try {
+      const g = await api('/api/game/forfeit', { game_id: onlineGameId });
+      stopPoll();
+      stopTurnTimer();
+      showResult(g);
+    } catch { goToMenu(); }
+  } else {
+    goToMenu();
+  }
+});
 $('#confirmNo').addEventListener('click', () => $('#confirmOverlay').classList.remove('show'));
 
 $('#restartBtn').addEventListener('click', () => {

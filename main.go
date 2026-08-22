@@ -677,6 +677,54 @@ func handleLeaderboard(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func handleForfeit(w http.ResponseWriter, r *http.Request, c *Claims) {
+	if r.Method != "POST" {
+		jsonErr(w, "method not allowed", 405)
+		return
+	}
+	var body struct {
+		GameID string `json:"game_id"`
+	}
+	if json.NewDecoder(r.Body).Decode(&body) != nil || body.GameID == "" {
+		jsonErr(w, "bad json", 400)
+		return
+	}
+	g, err := getGame(body.GameID)
+	if err != nil {
+		jsonErr(w, "game not found", 404)
+		return
+	}
+	if g.Status != "active" {
+		jsonErr(w, "game not active", 400)
+		return
+	}
+	if g.PlayerX != c.Email && g.PlayerO != c.Email {
+		jsonErr(w, "not your game", 403)
+		return
+	}
+	forfeiter := c.Email
+	winner := g.PlayerO
+	if g.PlayerO == c.Email {
+		winner = g.PlayerX
+	}
+	g.Winner = winner
+	g.Status = "finished"
+	g.Points = 5
+	if winner != "" {
+		if u, e := getUserByEmail(winner); e == nil {
+			addPoints(u.ID, 5)
+		}
+	}
+	if forfeiter != "" {
+		if u, e := getUserByEmail(forfeiter); e == nil {
+			addPoints(u.ID, -5)
+		}
+	}
+	updateGame(g)
+	log.Printf("Forfeit: %s left game %s, winner: %s", forfeiter, body.GameID, winner)
+	jsonResp(w, g)
+}
+
 // ─── Main ───
 
 func main() {
@@ -709,6 +757,7 @@ func main() {
 	http.HandleFunc("/api/game/create", withAuth(handleCreateGame))
 	http.HandleFunc("/api/game/join", withAuth(handleJoinGame))
 	http.HandleFunc("/api/game/move", withAuth(handleMove))
+	http.HandleFunc("/api/game/forfeit", withAuth(handleForfeit))
 	http.HandleFunc("/api/game/state", withAuth(handleJoinGame))
 	http.HandleFunc("/api/queue", withAuth(handleQueue))
 	http.HandleFunc("/api/leaderboard", handleLeaderboard)
