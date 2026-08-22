@@ -111,13 +111,13 @@
   .auth-input {
     font-family: 'Orbitron',monospace,sans-serif;
     font-size: .7rem; letter-spacing: .1em;
-    color: #ccc; background: transparent;
-    border: 1px solid rgba(255,255,255,.1);
+    color: #fff; background: transparent;
+    border: 1px solid rgba(255,255,255,.25);
     padding: 14px 18px; width: 100%;
     outline: none; transition: all .3s ease;
   }
-  .auth-input::placeholder { color: #333; letter-spacing: .15em; }
-  .auth-input:focus { border-color: rgba(255,255,255,.3); }
+  .auth-input::placeholder { color: #888; letter-spacing: .15em; }
+  .auth-input:focus { border-color: rgba(255,255,255,.5); }
   .auth-submit {
     font-family: 'Orbitron',monospace,sans-serif;
     font-size: .7rem; font-weight: 700;
@@ -131,10 +131,12 @@
   .auth-back {
     font-family: 'Orbitron',monospace,sans-serif;
     font-size: .5rem; letter-spacing: .15em;
-    color: #333; background: none; border: none;
-    cursor: pointer; margin-top: 20px; transition: color .3s;
+    color: #fff; background: none;
+    border: 1px solid rgba(255,255,255,.25);
+    padding: 8px 18px;
+    cursor: pointer; margin-top: 20px; transition: all .3s ease;
   }
-  .auth-back:hover { color: #888; }
+  .auth-back:hover { color: #ccc; border-color: rgba(255,255,255,.5); }
   .auth-error {
     font-size: .5rem; letter-spacing: .1em;
     color: #ff3333; min-height: 1em; text-align: center;
