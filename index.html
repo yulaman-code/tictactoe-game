@@ -796,6 +796,8 @@ async function joinOnlineGame() {
   try {
     const g = await api('/api/game/state?id=' + onlineGameId);
     gameMode = 'online';
+    gameOver = false;
+    boardEl.style.pointerEvents = '';
     if (g.player_x === userEmail) onlineMySym = 'X';
     else onlineMySym = 'O';
     loadGameState(g);
