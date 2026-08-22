@@ -224,6 +224,14 @@ func cleanQueue() {
 	db.Exec(`DELETE FROM games WHERE status='waiting' AND created_at < NOW() - INTERVAL '5 minutes'`)
 }
 
+func cleanStaleGames(uid int64) {
+	db.Exec(`UPDATE games SET status='finished', winner=''
+		WHERE id IN (SELECT g.id FROM game_players gp
+		JOIN games g ON gp.game_id=g.id
+		WHERE gp.user_id=$1 AND g.status IN ('waiting','active')
+		AND g.created_at < NOW() - INTERVAL '15 minutes')`, uid)
+}
+
 // ─── Models ───
 
 type User struct {
@@ -398,6 +406,7 @@ func handleCreateGame(w http.ResponseWriter, r *http.Request, c *Claims) {
 		return
 	}
 	cleanQueue()
+	cleanStaleGames(c.UserID)
 	log.Printf("Create game request by %s (id=%d)", c.Email, c.UserID)
 
 	gid := getActiveGameID(c.UserID)
@@ -562,6 +571,7 @@ func handleQueue(w http.ResponseWriter, r *http.Request, c *Claims) {
 		return
 	}
 	cleanQueue()
+	cleanStaleGames(c.UserID)
 	gid := getActiveGameID(c.UserID)
 	if gid != "" {
 		g, _ := getGame(gid)
