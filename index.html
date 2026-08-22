@@ -418,6 +418,51 @@
   }
   .theme-option.odyssey .theme-swatch { background: radial-gradient(circle,#ff0000 0%,#000 100%); border-color: rgba(255,0,0,.5); }
   .theme-option.cyberpunk .theme-swatch { background: radial-gradient(circle,#ff00ff 0%,#000 100%); border-color: rgba(255,0,255,.5); }
+
+  /* ─── Mobile ─── */
+  @media (max-width: 400px) {
+    .menu-btn { width: 100%; max-width: 280px; padding: 14px 20px; }
+    .hal-eye { width: 70px !important; height: 70px !important; }
+    #menu .hal-eye { width: 80px; height: 80px; margin-bottom: 30px; }
+    .theme-switcher { top: 12px; right: 12px; }
+    .theme-btn { font-size: .4rem; padding: 6px 10px; }
+    .theme-dropdown { min-width: 170px; }
+    .theme-option { font-size: .4rem; padding: 8px 12px; }
+    .game-top-bar { top: 12px; left: 12px; right: 12px; }
+    .game-pts { font-size: .45rem; padding: 6px 12px; }
+    .back-btn { font-size: .45rem; padding: 6px 12px; }
+    .board { width: clamp(240px, 75vw, 320px); height: clamp(240px, 75vw, 320px); gap: 5px; }
+    .cell .mark { font-size: clamp(1.8rem, 10vmin, 3.5rem); }
+    .score-board { gap: 24px; margin-top: 20px; }
+    .game-footer { bottom: 20px; gap: 16px; }
+    .footer-pts { font-size: .4rem; }
+    .confirm-btns { flex-direction: column; gap: 12px; align-items: center; }
+    .confirm-btns button { width: 160px; }
+    .lb-table { max-width: 220px; }
+    .lb-rank { width: 24px; font-size: .5rem; }
+    .lb-name { font-size: .5rem; }
+    .lb-pts { font-size: .55rem; min-width: 32px; }
+    .result-text { font-size: clamp(1rem, 6vw, 1.8rem); }
+    .restart-btn { padding: 12px 30px; }
+    .auth-form { max-width: 280px; padding: 0 16px; }
+    .auth-input { font-size: .6rem; padding: 12px 14px; }
+    .auth-submit { font-size: .6rem; padding: 12px 30px; }
+    .auth-title { font-size: clamp(.65rem, 3vw, .85rem); margin-bottom: 30px; }
+  }
+
+  .cell:active:not(.taken) {
+    background: var(--cell-hover-bg);
+    border-color: var(--border-bright);
+  }
+
+  @media (max-height: 600px) {
+    #menu .hal-eye { width: 60px; height: 60px; margin-bottom: 20px; }
+    #menu .title { margin-bottom: 24px; }
+    .menu-btn { padding: 10px 30px; margin-bottom: 8px; }
+    .menu-user { margin-bottom: 16px; }
+    .score-board { margin-top: 14px; gap: 18px; }
+    .game-footer { bottom: 14px; }
+  }
 </style>
 </head>
 <body>
