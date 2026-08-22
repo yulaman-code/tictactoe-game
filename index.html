@@ -610,6 +610,7 @@ let aiGoesFirst = JSON.parse(localStorage.getItem('ttt_ai_first') || 'null');
 let onlineGameId = null;
 let onlineMySym = null;
 let pollTimer = null;
+let aiTimer = null;
 
 // ─── Stars ───
 const starsEl = $('#stars');
@@ -852,6 +853,7 @@ function loadGameState(g) {
 
 // ─── Offline Game ───
 function startGame() {
+  if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
   cells = Array(9).fill(null);
   current = 'X';
   gameOver = false;
@@ -873,7 +875,7 @@ function startGame() {
     updateTurn();
     if (aiSym === 'X') {
       boardEl.style.pointerEvents = 'none';
-      setTimeout(aiMove, 500 + Math.random() * 400);
+      aiTimer = setTimeout(aiMove, 500 + Math.random() * 400);
     }
   } else {
     updateTurn();
@@ -927,14 +929,15 @@ function handleMove(i) {
 
   if (gameMode === 'ai' && current === aiSym && !gameOver) {
     boardEl.style.pointerEvents = 'none';
-    setTimeout(aiMove, 400 + Math.random() * 400);
+    aiTimer = setTimeout(aiMove, 400 + Math.random() * 400);
   }
 }
 
 function aiMove() {
-  if (gameOver) { boardEl.style.pointerEvents = ''; return; }
+  aiTimer = null;
+  if (gameOver || gameMode !== 'ai') { boardEl.style.pointerEvents = ''; return; }
   const pos = aiBestMove();
-  if (pos === -1) return;
+  if (pos == null) { boardEl.style.pointerEvents = ''; return; }
   cells[pos] = aiSym;
   const cell = boardEl.children[pos];
   const mark = cell.querySelector('.mark');
@@ -1155,10 +1158,12 @@ $('#restartBtn').addEventListener('click', () => {
 
 function goToMenu() {
   stopPoll();
+  if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
   $('#confirmOverlay').classList.remove('show');
   resultOverlay.classList.remove('show');
   onlineGameId = null;
   gameMode = 'offline';
+  gameOver = true;
   scores = { X: 0, O: 0, D: 0 };
   updateScores();
   showScreen('#menu');
