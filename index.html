@@ -960,16 +960,18 @@ function aiMove() {
 }
 
 function aiBestMove() {
-  let best = -1, bestScore = -Infinity;
+  let bestScore = -Infinity;
+  let bestMoves = [];
   for (let i = 0; i < 9; i++) {
     if (!cells[i]) {
       cells[i] = aiSym;
       const s = aiMinimax(cells, 0, false);
       cells[i] = null;
-      if (s > bestScore) { bestScore = s; best = i; }
+      if (s > bestScore) { bestScore = s; bestMoves = [i]; }
+      else if (s === bestScore) { bestMoves.push(i); }
     }
   }
-  return best;
+  return bestMoves[Math.floor(Math.random() * bestMoves.length)];
 }
 
 function aiMinimax(b, depth, isMax) {
