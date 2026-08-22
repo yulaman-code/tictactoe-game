@@ -565,7 +565,7 @@ func handleQueue(w http.ResponseWriter, r *http.Request, c *Claims) {
 	gid := getActiveGameID(c.UserID)
 	if gid != "" {
 		g, _ := getGame(gid)
-		if g != nil {
+		if g != nil && g.Status == "active" {
 			jsonResp(w, map[string]interface{}{"status": "found", "game_id": gid, "game": g})
 			return
 		}
