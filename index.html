@@ -567,7 +567,7 @@
 
 <!-- ═══ CONFIRM ═══ -->
 <div class="confirm-overlay" id="confirmOverlay">
-  <div class="confirm-text">Вы точно хотите остановить игру?</div>
+  <div class="confirm-text" id="confirmText">Вы точно хотите остановить игру?</div>
   <div class="confirm-btns">
     <button class="confirm-yes" id="confirmYes">Да</button>
     <button class="confirm-no" id="confirmNo">Нет</button>
@@ -873,7 +873,7 @@ function startGamePoll() {
     try {
       const g = await api('/api/game/state?id=' + onlineGameId);
       loadGameState(g);
-      if (g.status === 'finished') { stopPoll(); showResult(g); }
+      if (g.status === 'finished' && !gameOver) { stopPoll(); showResult(g); }
     } catch {}
   }, 1000);
 }
@@ -1149,9 +1149,9 @@ function showResultLocal(winner, pts) {
 
 function showResult(g) {
   const winner = g.winner;
-  const isMe = winner === onlineMySym;
-  const pts = g.points || 0;
   const forfeit = g.forfeit;
+  const isMe = forfeit ? (winner === userEmail) : (winner === onlineMySym);
+  const pts = g.points || 0;
 
   if (winner) {
     if (isMe) {
@@ -1159,17 +1159,19 @@ function showResult(g) {
       resultText.className = 'result-text x-win';
       resultPts.innerHTML = '+<span>' + pts + '</span> ' + (pts === 1 ? 'очко' : 'очков');
     } else {
-      resultText.textContent = 'Поражение';
+      resultText.textContent = forfeit ? 'Вы покинули игру' : 'Поражение';
       resultText.className = 'result-text o-win';
       resultPts.innerHTML = '-<span>' + pts + '</span> ' + (pts === 1 ? 'очко' : 'очков');
     }
-    document.querySelectorAll('.cell').forEach(c => {
-      const mk = c.querySelector('.mark');
-      if (mk.textContent === (winner === 'X' ? '✕' : '○')) {
-        c.classList.add('winner');
-        if (winner === 'O') c.classList.add('o-cell');
-      }
-    });
+    if (!forfeit) {
+      document.querySelectorAll('.cell').forEach(c => {
+        const mk = c.querySelector('.mark');
+        if (mk.textContent === (winner === 'X' ? '✕' : '○')) {
+          c.classList.add('winner');
+          if (winner === 'O') c.classList.add('o-cell');
+        }
+      });
+    }
   } else {
     resultText.textContent = 'Ничья';
     resultText.className = 'result-text draw';
@@ -1204,6 +1206,8 @@ $('#confirmYes').addEventListener('click', async () => {
   if (gameMode === 'online' && !gameOver && onlineGameId) {
     try {
       const g = await api('/api/game/forfeit', { game_id: onlineGameId });
+      gameOver = true;
+      $('#confirmOverlay').classList.remove('show');
       stopPoll();
       stopTurnTimer();
       showResult(g);

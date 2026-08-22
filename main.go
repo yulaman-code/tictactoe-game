@@ -55,6 +55,7 @@ func initDB() {
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`)
 	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS turn_started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`)
+	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS forfeit BOOLEAN DEFAULT false`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS game_players (
 		game_id TEXT,
 		user_id INTEGER
@@ -138,9 +139,10 @@ func getGame(id string) (*GameState, error) {
 	var board, px, po, st, wi string
 	var pw int
 	var tsa time.Time
+	var ff bool
 	err := db.QueryRow(
-		"SELECT COALESCE(board,'[]'), COALESCE(turn,'X'), COALESCE(player_x,''), COALESCE(player_o,''), COALESCE(status,'waiting'), COALESCE(winner,''), COALESCE(points_won,0), COALESCE(turn_started_at,created_at) FROM games WHERE id=$1", id,
-	).Scan(&board, &g.Turn, &px, &po, &st, &wi, &pw, &tsa)
+		"SELECT COALESCE(board,'[]'), COALESCE(turn,'X'), COALESCE(player_x,''), COALESCE(player_o,''), COALESCE(status,'waiting'), COALESCE(winner,''), COALESCE(points_won,0), COALESCE(turn_started_at,created_at), COALESCE(forfeit,false) FROM games WHERE id=$1", id,
+	).Scan(&board, &g.Turn, &px, &po, &st, &wi, &pw, &tsa, &ff)
 	if err != nil {
 		return nil, err
 	}
@@ -150,6 +152,7 @@ func getGame(id string) (*GameState, error) {
 	g.Winner = wi
 	g.Points = pw
 	g.TurnStartedAt = tsa.Unix()
+	g.Forfeit = ff
 	json.Unmarshal([]byte(board), &g.Board)
 	db.QueryRow("SELECT COUNT(*) FROM games WHERE status='finished'").Scan(&g.TotalGames)
 	db.QueryRow("SELECT COUNT(*) FROM games WHERE status='finished' AND winner='X'").Scan(&g.WinsX)
@@ -160,8 +163,8 @@ func getGame(id string) (*GameState, error) {
 
 func updateGame(g *GameState) {
 	b, _ := json.Marshal(g.Board)
-	db.Exec("UPDATE games SET board=$1, turn=$2, status=$3, winner=$4, points_won=$5, turn_started_at=to_timestamp($6) WHERE id=$7",
-		string(b), g.Turn, g.Status, g.Winner, g.Points, g.TurnStartedAt, g.ID)
+	db.Exec("UPDATE games SET board=$1, turn=$2, status=$3, winner=$4, points_won=$5, turn_started_at=to_timestamp($6), forfeit=$7 WHERE id=$8",
+		string(b), g.Turn, g.Status, g.Winner, g.Points, g.TurnStartedAt, g.Forfeit, g.ID)
 }
 
 const turnTimeout = 30 * time.Second
@@ -300,6 +303,7 @@ type GameState struct {
 	WinsO         int      `json:"wins_o"`
 	Draws         int      `json:"draws"`
 	TurnStartedAt int64    `json:"turn_started_at"`
+	Forfeit       bool     `json:"forfeit"`
 }
 
 type Claims struct {
@@ -564,7 +568,7 @@ func handleMove(w http.ResponseWriter, r *http.Request, c *Claims) {
 		return
 	}
 
-_email := c.Email
+	_email := c.Email
 	var sym string
 	if g.PlayerX == _email {
 		sym = "X"
@@ -710,6 +714,7 @@ func handleForfeit(w http.ResponseWriter, r *http.Request, c *Claims) {
 	g.Winner = winner
 	g.Status = "finished"
 	g.Points = 5
+	g.Forfeit = true
 	if winner != "" {
 		if u, e := getUserByEmail(winner); e == nil {
 			addPoints(u.ID, 5)
