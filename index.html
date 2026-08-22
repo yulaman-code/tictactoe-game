@@ -606,6 +606,7 @@ let userPoints = parseInt(localStorage.getItem('ttt_points') || '0');
 let gameMode = 'offline'; // offline | online | ai
 let aiSym = null;
 let humanSym = null;
+let aiGoesFirst = JSON.parse(localStorage.getItem('ttt_ai_first') || 'null');
 let onlineGameId = null;
 let onlineMySym = null;
 let pollTimer = null;
@@ -864,7 +865,10 @@ function startGame() {
     c.querySelector('.mark').className = 'mark';
   });
   if (gameMode === 'ai') {
-    if (Math.random() < 0.5) { aiSym = 'X'; humanSym = 'O'; }
+    if (aiGoesFirst === null) aiGoesFirst = Math.random() < 0.5;
+    else aiGoesFirst = !aiGoesFirst;
+    localStorage.setItem('ttt_ai_first', aiGoesFirst);
+    if (aiGoesFirst) { aiSym = 'X'; humanSym = 'O'; }
     else { aiSym = 'O'; humanSym = 'X'; }
     updateTurn();
     if (aiSym === 'X') {
