@@ -968,8 +968,10 @@ function aiMove() {
 function aiBestMove() {
   let bestScore = -Infinity;
   let bestMoves = [];
+  let allMoves = [];
   for (let i = 0; i < 9; i++) {
     if (!cells[i]) {
+      allMoves.push(i);
       cells[i] = aiSym;
       const s = aiMinimax(cells, 0, false);
       cells[i] = null;
@@ -977,6 +979,7 @@ function aiBestMove() {
       else if (s === bestScore) { bestMoves.push(i); }
     }
   }
+  if (Math.random() < 0.25) return allMoves[Math.floor(Math.random() * allMoves.length)];
   return bestMoves[Math.floor(Math.random() * bestMoves.length)];
 }
 
