@@ -62,6 +62,33 @@
     --eye-outer: #660066;
   }
 
+  body.dune {
+    --bg: #0d0b07;
+    --text: #e8dcc8;
+    --accent: #c8a04e;
+    --accent-bright: #e8c060;
+    --accent-dim: #a08030;
+    --accent-glow: rgba(200,160,78,.4);
+    --accent-glow-lg: rgba(200,160,78,.15);
+    --accent-glow-sm: rgba(200,160,78,.1);
+    --border: rgba(200,160,78,.25);
+    --border-bright: rgba(200,160,78,.5);
+    --border-dim: rgba(200,160,78,.08);
+    --gray: #8a7a5a;
+    --cell-bg: rgba(200,160,78,.06);
+    --cell-border: rgba(200,160,78,.35);
+    --cell-hover-bg: rgba(200,160,78,.05);
+    --cell-hover-border: rgba(200,160,78,.2);
+    --star-color: #c8a04e;
+    --title-grad: linear-gradient(180deg,#e8c060 30%,#8a7a5a 100%);
+    --scanline: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(200,160,78,.02) 2px,rgba(200,160,78,.02) 4px);
+    --overlay-bg: rgba(13,11,7,.92);
+    --confirm-bg: rgba(13,11,7,.88);
+    --eye-center: #c8a04e;
+    --eye-mid: #a08030;
+    --eye-outer: #605020;
+  }
+
   body {
     background: var(--bg);
     color: var(--text);
@@ -469,6 +496,7 @@
   }
   .theme-option.odyssey .theme-swatch { background: radial-gradient(circle,#ff0000 0%,#000 100%); border-color: rgba(255,0,0,.5); }
   .theme-option.cyberpunk .theme-swatch { background: radial-gradient(circle,#ff00ff 0%,#000 100%); border-color: rgba(255,0,255,.5); }
+  .theme-option.dune .theme-swatch { background: radial-gradient(circle,#c8a04e 0%,#0d0b07 100%); border-color: rgba(200,160,78,.5); }
 
   /* ─── Mobile ─── */
   @media (max-width: 480px) {
@@ -540,6 +568,9 @@
       </button>
       <button class="theme-option cyberpunk" data-theme="cyberpunk">
         <div class="theme-swatch"></div>Киберпанк
+      </button>
+      <button class="theme-option dune" data-theme="dune">
+        <div class="theme-swatch"></div>Дюна
       </button>
     </div>
   </div>
@@ -653,8 +684,8 @@ const resultPts = $('#resultPts');
 // ─── Theme ───
 const savedTheme = localStorage.getItem('ttt_theme') || 'odyssey';
 function applyTheme(t) {
-  document.body.classList.remove('odyssey','cyberpunk');
-  if (t === 'cyberpunk') document.body.classList.add('cyberpunk');
+  document.body.classList.remove('odyssey','cyberpunk','dune');
+  if (t !== 'odyssey') document.body.classList.add(t);
   localStorage.setItem('ttt_theme', t);
   document.querySelectorAll('.theme-option').forEach(o => o.classList.toggle('active', o.dataset.theme === t));
 }
