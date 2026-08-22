@@ -681,6 +681,28 @@ const resultOverlay = $('#resultOverlay');
 const resultText = $('#resultText');
 const resultPts = $('#resultPts');
 
+// ─── Sound ───
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function sfx(freq, dur, type, vol) {
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type || 'sine';
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(vol || .15, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + dur);
+}
+function sndClick() { sfx(600, .08, 'sine', .1); }
+function sndMove() { sfx(440, .12, 'triangle', .12); sfx(660, .08, 'sine', .08); }
+function sndWin() { sfx(523, .15, 'sine', .15); setTimeout(() => sfx(659, .15, 'sine', .15), 120); setTimeout(() => sfx(784, .3, 'sine', .15), 240); }
+function sndLose() { sfx(440, .2, 'sawtooth', .08); setTimeout(() => sfx(330, .3, 'sawtooth', .08), 200); }
+function sndDraw() { sfx(350, .25, 'triangle', .1); setTimeout(() => sfx(280, .35, 'triangle', .1), 150); }
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.menu-btn,.back-btn,.restart-btn,.auth-submit,.confirm-btns button,.theme-btn,.theme-option')) sndClick();
+});
+
 // ─── Theme ───
 const savedTheme = localStorage.getItem('ttt_theme') || 'odyssey';
 function applyTheme(t) {
@@ -1066,6 +1088,7 @@ function handleMove(i) {
   mark.textContent = current === 'X' ? '✕' : '○';
   mark.className = 'mark ' + current.toLowerCase() + ' show';
   cell.classList.add('taken');
+  sndMove();
 
   const wc = checkWin(cells, current);
   if (wc) {
@@ -1114,6 +1137,7 @@ function aiMove() {
   mark.textContent = aiSym === 'X' ? '✕' : '○';
   mark.className = 'mark ' + aiSym.toLowerCase() + ' show';
   cell.classList.add('taken');
+  sndMove();
 
   const wc = checkWin(cells, aiSym);
   if (wc) {
@@ -1209,6 +1233,7 @@ async function handleOnlineMove(i) {
     turnLabel.textContent = 'Ожидание...';
     turnLabel.className = 'turn-label';
     const g = await api('/api/game/move', { game_id: onlineGameId, pos: i });
+    sndMove();
     loadGameState(g);
     if (g.status === 'finished') {
       gameOver = true;
@@ -1258,13 +1283,16 @@ function showResultLocal(winner, pts) {
       if (winner === humanSym) {
         resultText.textContent = 'Вы победили';
         resultText.className = 'result-text x-win';
+        sndWin();
       } else {
         resultText.textContent = 'T-800 Победил';
         resultText.className = 'result-text o-win';
+        sndLose();
       }
     } else {
       resultText.textContent = winner === 'X' ? 'Крестик победил' : 'Нолик победил';
       resultText.className = 'result-text ' + (winner === 'X' ? 'x-win' : 'o-win');
+      sndWin();
     }
     resultPts.innerHTML = '';
     document.querySelectorAll('.cell').forEach(c => {
@@ -1278,6 +1306,7 @@ function showResultLocal(winner, pts) {
     resultText.textContent = 'Ничья';
     resultText.className = 'result-text draw';
     resultPts.innerHTML = '';
+    sndDraw();
   }
   $('#menuBtnResult').style.display = 'none';
   resultOverlay.classList.add('show');
@@ -1294,10 +1323,12 @@ function showResult(g) {
       resultText.textContent = forfeit ? 'Ваш противник покинул игру' : 'Победа';
       resultText.className = 'result-text x-win';
       resultPts.innerHTML = '+<span>' + pts + '</span> ' + (pts === 1 ? 'очко' : 'очков');
+      sndWin();
     } else {
       resultText.textContent = forfeit ? 'Вы покинули игру' : 'Поражение';
       resultText.className = 'result-text o-win';
       resultPts.innerHTML = '-<span>' + pts + '</span> ' + (pts === 1 ? 'очко' : 'очков');
+      sndLose();
     }
     if (!forfeit) {
       document.querySelectorAll('.cell').forEach(c => {
@@ -1312,6 +1343,7 @@ function showResult(g) {
     resultText.textContent = 'Ничья';
     resultText.className = 'result-text draw';
     resultPts.innerHTML = '';
+    sndDraw();
   }
   updateScoresFromServer(g);
   $('#menuBtnResult').style.display = '';
