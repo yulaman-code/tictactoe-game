@@ -1033,7 +1033,6 @@ const I18N = {
     langBtn: 'भाषा',
   },
 };
-const LANG_KEYS = Object.keys(I18N);
 let currentLang = localStorage.getItem('ttt_lang') || 'ru';
 
 function t(key) { return (I18N[currentLang] || I18N.ru)[key] || (I18N.ru)[key] || key; }
@@ -1082,8 +1081,6 @@ function refreshUI() {
   updateMenu();
   if ($('#game').classList.contains('active') && gameMode !== 'online') updateTurn();
 }
-
-applyLang(currentLang);
 
 const langBtn = $('#langBtn');
 const langDropdown = $('#langDropdown');
@@ -1141,6 +1138,8 @@ let onlineMySym = null;
 let pollTimer = null;
 let aiTimer = null;
 let turnTimer = null;
+
+applyLang(currentLang);
 
 // ─── Stars ───
 const starsEl = $('#stars');
