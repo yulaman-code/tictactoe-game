@@ -498,6 +498,39 @@
   .theme-option.cyberpunk .theme-swatch { background: radial-gradient(circle,#ff00ff 0%,#000 100%); border-color: rgba(255,0,255,.5); }
   .theme-option.dune .theme-swatch { background: radial-gradient(circle,#c8a04e 0%,#0d0b07 100%); border-color: rgba(200,160,78,.5); }
 
+  /* ─── Lang Switcher ─── */
+  .lang-switcher {
+    position: fixed; top: 20px; left: 20px; z-index: 70;
+  }
+  .lang-btn {
+    font-family: 'Orbitron',monospace,sans-serif;
+    font-size: .5rem; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--text); background: transparent;
+    border: 1px solid var(--border);
+    padding: 8px 16px; cursor: pointer;
+    transition: all .3s ease;
+  }
+  .lang-btn:hover { border-color: var(--border-bright); }
+  .lang-dropdown {
+    position: absolute; top: calc(100% + 8px); left: 0;
+    display: none; flex-direction: column; gap: 6px;
+    min-width: 140px;
+  }
+  .lang-dropdown.show {
+    display: flex;
+    animation: fadeSlideIn .75s ease-out both;
+  }
+  .lang-option {
+    font-family: 'Orbitron',monospace,sans-serif;
+    font-size: .5rem; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--text); background: transparent;
+    border: 1px solid var(--border);
+    padding: 10px 16px; cursor: pointer;
+    transition: all .3s ease;
+  }
+  .lang-option:hover { border-color: var(--border-bright); }
+  .lang-option.active { border-color: var(--accent); }
+
   /* ─── Mobile ─── */
   @media (max-width: 480px) {
     .menu-btn { width: 100%; max-width: 280px; padding: 14px 20px; }
@@ -509,6 +542,10 @@
     .theme-dropdown { min-width: 140px; gap: 3px; }
     .theme-option { font-size: .25rem; padding: 3px 5px; letter-spacing: .09em; gap: 5px; }
     .theme-swatch { width: 9px; height: 9px; }
+    .lang-switcher { top: 12px; left: 12px; }
+    .lang-btn { font-size: .25rem; padding: 3px 5px; letter-spacing: .09em; }
+    .lang-dropdown { min-width: 110px; gap: 3px; }
+    .lang-option { font-size: .25rem; padding: 3px 5px; letter-spacing: .09em; }
     .game-top-bar { top: 12px; left: 12px; right: 12px; }
     .game-pts { font-size: .45rem; padding: 6px 12px; }
     .back-btn { font-size: .45rem; padding: 6px 12px; }
@@ -564,14 +601,24 @@
     <button class="theme-btn" id="themeBtn">Поменять тему</button>
     <div class="theme-dropdown" id="themeDropdown">
       <button class="theme-option odyssey active" data-theme="odyssey">
-        <div class="theme-swatch"></div>Космическая одиссея
+        <div class="theme-swatch"></div><span>Космическая одиссея</span>
       </button>
       <button class="theme-option cyberpunk" data-theme="cyberpunk">
-        <div class="theme-swatch"></div>Киберпанк
+        <div class="theme-swatch"></div><span>Киберпанк</span>
       </button>
       <button class="theme-option dune" data-theme="dune">
-        <div class="theme-swatch"></div>Дюна
+        <div class="theme-swatch"></div><span>Дюна</span>
       </button>
+    </div>
+  </div>
+  <div class="lang-switcher" id="langSwitcher">
+    <button class="lang-btn" id="langBtn">Язык</button>
+    <div class="lang-dropdown" id="langDropdown">
+      <button class="lang-option active" data-lang="ru">Русский</button>
+      <button class="lang-option" data-lang="en">English</button>
+      <button class="lang-option" data-lang="zh">中文</button>
+      <button class="lang-option" data-lang="ja">日本語</button>
+      <button class="lang-option" data-lang="hi">हिन्दी</button>
     </div>
   </div>
   <div class="menu-user" id="menuUser"></div>
@@ -700,16 +747,365 @@ function sndLose() { sfx(440, .2, 'sawtooth', .08); setTimeout(() => sfx(330, .3
 function sndDraw() { sfx(350, .25, 'triangle', .1); setTimeout(() => sfx(280, .35, 'triangle', .1), 150); }
 
 document.addEventListener('click', (e) => {
-  if (e.target.closest('.menu-btn,.back-btn,.restart-btn,.auth-submit,.confirm-btns button,.theme-btn,.theme-option')) sndClick();
+  if (e.target.closest('.menu-btn,.back-btn,.restart-btn,.auth-submit,.confirm-btns button,.theme-btn,.theme-option,.lang-btn,.lang-option')) sndClick();
+});
+
+// ─── i18n ───
+const I18N = {
+  ru: {
+    title: 'Крестики-Нолики',
+    offline: 'Играть оффлайн',
+    ai: 'Играть с компьютером',
+    leaderboard: 'Рейтинг игроков',
+    online: 'Играть онлайн',
+    login: 'Войти',
+    register: 'Регистрация',
+    logout: 'Выйти',
+    loginTitle: 'Вход',
+    nickname: 'Никнейм',
+    password: 'Пароль',
+    registerTitle: 'Придумайте никнейм и пароль',
+    registerBtn: 'Зарегистрироваться',
+    back: '← Назад',
+    searching: 'Поиск противника...',
+    waiting: 'Ожидание противника...',
+    menu: '← В меню',
+    turnX: 'Ход: Крестик',
+    turnO: 'Ход: Нолик',
+    yourTurn: 'Ваш ход',
+    opponentTurn: 'Ход соперника',
+    waitingDots: 'Ожидание...',
+    timeOut: 'Время вышло',
+    timerSec: 'с',
+    youWin: 'Вы победили',
+    aiWin: 'T-800 Победил',
+    xWin: 'Крестик победил',
+    oWin: 'Нолик победил',
+    draw: 'Ничья',
+    victory: 'Победа',
+    defeat: 'Поражение',
+    opponentLeft: 'Ваш противник покинул игру',
+    youLeft: 'Вы покинули игру',
+    pt1: 'очко',
+    pt2: 'очков',
+    points: 'очков',
+    restart: 'Заново',
+    menuResult: 'В меню',
+    confirmTitle: 'Вы точно хотите остановить игру?',
+    confirmPenalty: 'Вы потеряете 5 очков',
+    confirmYes: 'Да',
+    confirmNo: 'Нет',
+    lbTitle: 'Глобальный рейтинг',
+    lbPlayer: 'Игрок',
+    lbPts: 'Очки',
+    lbEmpty: 'Пока нет игроков',
+    lbLoading: 'Загрузка...',
+    lbError: 'Ошибка загрузки',
+    errorPrefix: 'Ошибка: ',
+    themeBtn: 'Поменять тему',
+    themeOdyssey: 'Космическая одиссея',
+    themeCyberpunk: 'Киберпанк',
+    themeDune: 'Дюна',
+    langBtn: 'Язык',
+  },
+  en: {
+    title: 'Tic-Tac-Toe',
+    offline: 'Play Offline',
+    ai: 'Play vs Computer',
+    leaderboard: 'Leaderboard',
+    online: 'Play Online',
+    login: 'Log In',
+    register: 'Sign Up',
+    logout: 'Log Out',
+    loginTitle: 'Log In',
+    nickname: 'Nickname',
+    password: 'Password',
+    registerTitle: 'Choose a nickname and password',
+    registerBtn: 'Register',
+    back: '← Back',
+    searching: 'Searching for opponent...',
+    waiting: 'Waiting for opponent...',
+    menu: '← Menu',
+    turnX: 'Turn: Cross',
+    turnO: 'Turn: Circle',
+    yourTurn: 'Your turn',
+    opponentTurn: "Opponent's turn",
+    waitingDots: 'Waiting...',
+    timeOut: 'Time out',
+    timerSec: 's',
+    youWin: 'You win',
+    aiWin: 'T-800 Wins',
+    xWin: 'Cross wins',
+    oWin: 'Circle wins',
+    draw: 'Draw',
+    victory: 'Victory',
+    defeat: 'Defeat',
+    opponentLeft: 'Your opponent left the game',
+    youLeft: 'You left the game',
+    pt1: 'pt',
+    pt2: 'pts',
+    points: 'pts',
+    restart: 'Restart',
+    menuResult: 'Menu',
+    confirmTitle: 'Are you sure you want to quit?',
+    confirmPenalty: 'You will lose 5 points',
+    confirmYes: 'Yes',
+    confirmNo: 'No',
+    lbTitle: 'Global Leaderboard',
+    lbPlayer: 'Player',
+    lbPts: 'Score',
+    lbEmpty: 'No players yet',
+    lbLoading: 'Loading...',
+    lbError: 'Failed to load',
+    errorPrefix: 'Error: ',
+    themeBtn: 'Theme',
+    themeOdyssey: 'Space Odyssey',
+    themeCyberpunk: 'Cyberpunk',
+    themeDune: 'Dune',
+    langBtn: 'Lang',
+  },
+  zh: {
+    title: '井字棋',
+    offline: '离线对战',
+    ai: '人机对战',
+    leaderboard: '排行榜',
+    online: '在线对战',
+    login: '登录',
+    register: '注册',
+    logout: '退出',
+    loginTitle: '登录',
+    nickname: '昵称',
+    password: '密码',
+    registerTitle: '设置昵称和密码',
+    registerBtn: '注册',
+    back: '← 返回',
+    searching: '搜索对手...',
+    waiting: '等待对手...',
+    menu: '← 菜单',
+    turnX: '轮到: 叉',
+    turnO: '轮到: 圈',
+    yourTurn: '你的回合',
+    opponentTurn: '对手回合',
+    waitingDots: '等待中...',
+    timeOut: '超时',
+    timerSec: '秒',
+    youWin: '你赢了',
+    aiWin: 'T-800 获胜',
+    xWin: '叉获胜',
+    oWin: '圈获胜',
+    draw: '平局',
+    victory: '胜利',
+    defeat: '失败',
+    opponentLeft: '对手离开了游戏',
+    youLeft: '你离开了游戏',
+    pt1: '分',
+    pt2: '分',
+    points: '分',
+    restart: '重新开始',
+    menuResult: '菜单',
+    confirmTitle: '确定要退出游戏吗？',
+    confirmPenalty: '你将失去5分',
+    confirmYes: '是',
+    confirmNo: '否',
+    lbTitle: '全球排行榜',
+    lbPlayer: '玩家',
+    lbPts: '分数',
+    lbEmpty: '暂无玩家',
+    lbLoading: '加载中...',
+    lbError: '加载失败',
+    errorPrefix: '错误: ',
+    themeBtn: '主题',
+    themeOdyssey: '太空漫游',
+    themeCyberpunk: '赛博朋克',
+    themeDune: '沙丘',
+    langBtn: '语言',
+  },
+  ja: {
+    title: 'マス目ゲーム',
+    offline: 'オフライン対戦',
+    ai: 'コンピュータ対戦',
+    leaderboard: 'リーダーボード',
+    online: 'オンライン対戦',
+    login: 'ログイン',
+    register: '新規登録',
+    logout: 'ログアウト',
+    loginTitle: 'ログイン',
+    nickname: 'ニックネーム',
+    password: 'パスワード',
+    registerTitle: 'ニックネームとパスワードを設定',
+    registerBtn: '登録',
+    back: '← 戻る',
+    searching: '対戦相手を検索中...',
+    waiting: '対戦相手を待機中...',
+    menu: '← メニュー',
+    turnX: '手番: バツ',
+    turnO: '手番: 丸',
+    yourTurn: 'あなたの手番',
+    opponentTurn: '相手の手番',
+    waitingDots: '待機中...',
+    timeOut: 'タイムアウト',
+    timerSec: '秒',
+    youWin: '勝利',
+    aiWin: 'T-800 勝利',
+    xWin: 'バツの勝ち',
+    oWin: '丸の勝ち',
+    draw: '引き分け',
+    victory: '勝利',
+    defeat: '敗北',
+    opponentLeft: '対戦相手が退出しました',
+    youLeft: '退出しました',
+    pt1: '点',
+    pt2: '点',
+    points: '点',
+    restart: '再戦',
+    menuResult: 'メニュー',
+    confirmTitle: '本当にゲームを終了しますか？',
+    confirmPenalty: '5ポイント失います',
+    confirmYes: 'はい',
+    confirmNo: 'いいえ',
+    lbTitle: 'グローバルリーダーボード',
+    lbPlayer: 'プレイヤー',
+    lbPts: 'スコア',
+    lbEmpty: 'まだプレイヤーがいません',
+    lbLoading: '読み込み中...',
+    lbError: '読み込みエラー',
+    errorPrefix: 'エラー: ',
+    themeBtn: 'テーマ',
+    themeOdyssey: 'スペース・オデッセイ',
+    themeCyberpunk: 'サイバーパンク',
+    themeDune: 'デューン',
+    langBtn: '言語',
+  },
+  hi: {
+    title: 'टिक-टैक-टो',
+    offline: 'ऑफ़लाइन खेलें',
+    ai: 'कंप्यूटर से खेलें',
+    leaderboard: 'लीडरबोर्ड',
+    online: 'ऑनलाइन खेलें',
+    login: 'लॉग इन',
+    register: 'रजिस्टर',
+    logout: 'लॉग आउट',
+    loginTitle: 'लॉग इन',
+    nickname: 'उपनाम',
+    password: 'पासवर्ड',
+    registerTitle: 'उपनाम और पासवर्ड चुनें',
+    registerBtn: 'रजिस्टर',
+    back: '← वापस',
+    searching: 'प्रतिद्वंद्वी खोज रहे हैं...',
+    waiting: 'प्रतिद्वंद्वी की प्रतीक्षा...',
+    menu: '← मेनू',
+    turnX: 'बारी: क्रॉस',
+    turnO: 'बारी: सर्कल',
+    yourTurn: 'आपकी बारी',
+    opponentTurn: 'प्रतिद्वंद्वी की बारी',
+    waitingDots: 'प्रतीक्षा...',
+    timeOut: 'समय समाप्त',
+    timerSec: 'से',
+    youWin: 'आप जीते',
+    aiWin: 'T-800 जीता',
+    xWin: 'क्रॉस जीता',
+    oWin: 'सर्कल जीता',
+    draw: 'ड्रॉ',
+    victory: 'जीत',
+    defeat: 'हार',
+    opponentLeft: 'आपके प्रतिद्वंद्वी ने खेछ छोड़ दिया',
+    youLeft: 'आपने खेछ छोड़ दिया',
+    pt1: 'अंक',
+    pt2: 'अंक',
+    points: 'अंक',
+    restart: 'पुनरारंभ',
+    menuResult: 'मेनू',
+    confirmTitle: 'क्या आप वाकई खेछ छोड़ना चाहते हैं?',
+    confirmPenalty: 'आप 5 अंक गँवाएंगे',
+    confirmYes: 'हाँ',
+    confirmNo: 'नहीं',
+    lbTitle: 'वैश्विक लीडरबोर्ड',
+    lbPlayer: 'खिलाड़ी',
+    lbPts: 'स्कोर',
+    lbEmpty: 'अभी कोई खिलाड़ी नहीं',
+    lbLoading: 'लोड हो रहा है...',
+    lbError: 'लोड विफल',
+    errorPrefix: 'त्रुटि: ',
+    themeBtn: 'थीम',
+    themeOdyssey: 'स्पेस ओडिसी',
+    themeCyberpunk: 'साइबरपंक',
+    themeDune: 'ड्यून',
+    langBtn: 'भाषा',
+  },
+};
+const LANG_KEYS = Object.keys(I18N);
+let currentLang = localStorage.getItem('ttt_lang') || 'ru';
+
+function t(key) { return (I18N[currentLang] || I18N.ru)[key] || (I18N.ru)[key] || key; }
+
+function applyLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('ttt_lang', lang);
+  document.documentElement.lang = lang;
+  document.querySelectorAll('.lang-option').forEach(o => o.classList.toggle('active', o.dataset.lang === lang));
+  refreshUI();
+}
+
+function refreshUI() {
+  document.title = t('title');
+  $('#menu .title').textContent = t('title');
+  $('#btnOffline').textContent = t('offline');
+  $('#btnAI').textContent = t('ai');
+  $('#btnLeaderboard').textContent = t('leaderboard');
+  $('#btnOnline').textContent = t('online');
+  $('#btnLogin').textContent = t('login');
+  $('#btnRegister').textContent = t('register');
+  $('#btnLogout').textContent = t('logout');
+  $('#loginScreen .auth-title').textContent = t('loginTitle');
+  $('#loginEmail').placeholder = t('nickname');
+  $('#loginPass').placeholder = t('password');
+  $('#loginForm .auth-submit').textContent = t('login');
+  $('#loginBack').textContent = t('back');
+  $('#registerScreen .auth-title').textContent = t('registerTitle');
+  $('#regEmail').placeholder = t('nickname');
+  $('#regPass').placeholder = t('password');
+  $('#registerForm .auth-submit').textContent = t('registerBtn');
+  $('#regBack').textContent = t('back');
+  $('#waitBack').textContent = t('menu');
+  $('#backBtn').textContent = t('menu');
+  $('#restartBtn').textContent = t('restart');
+  $('#menuBtnResult').textContent = t('menuResult');
+  $('#lbBack').textContent = t('menu');
+  $('#lbTitle').textContent = t('lbTitle');
+  $('#themeBtn').textContent = t('themeBtn');
+  $('#themeDropdown .theme-option.odyssey span').textContent = t('themeOdyssey');
+  $('#themeDropdown .theme-option.cyberpunk span').textContent = t('themeCyberpunk');
+  $('#themeDropdown .theme-option.dune span').textContent = t('themeDune');
+  $('#langBtn').textContent = t('langBtn');
+  $('#confirmYes').textContent = t('confirmYes');
+  $('#confirmNo').textContent = t('confirmNo');
+  updateMenu();
+  if ($('#game').classList.contains('active') && gameMode !== 'online') updateTurn();
+}
+
+applyLang(currentLang);
+
+const langBtn = $('#langBtn');
+const langDropdown = $('#langDropdown');
+langBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  sndClick();
+  langDropdown.classList.toggle('show');
+});
+document.addEventListener('click', () => langDropdown.classList.remove('show'));
+langDropdown.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const opt = e.target.closest('.lang-option');
+  if (opt) { sndClick(); applyLang(opt.dataset.lang); langDropdown.classList.remove('show'); }
 });
 
 // ─── Theme ───
 const savedTheme = localStorage.getItem('ttt_theme') || 'odyssey';
-function applyTheme(t) {
+function applyTheme(theme) {
   document.body.classList.remove('odyssey','cyberpunk','dune');
-  if (t !== 'odyssey') document.body.classList.add(t);
-  localStorage.setItem('ttt_theme', t);
-  document.querySelectorAll('.theme-option').forEach(o => o.classList.toggle('active', o.dataset.theme === t));
+  if (theme !== 'odyssey') document.body.classList.add(theme);
+  localStorage.setItem('ttt_theme', theme);
+  document.querySelectorAll('.theme-option').forEach(o => o.classList.toggle('active', o.dataset.theme === theme));
 }
 applyTheme(savedTheme);
 
@@ -808,7 +1204,7 @@ function updateMenu() {
   $('#btnOnline').style.display = logged ? '' : 'none';
   $('#btnLogout').style.display = logged ? '' : 'none';
   $('#menuUser').innerHTML = logged
-    ? '<span>' + userEmail + '</span> · ' + userPoints + ' очков'
+    ? '<span>' + userEmail + '</span> · ' + userPoints + ' ' + t('points')
     : '';
 }
 
@@ -890,7 +1286,7 @@ $('#registerForm').addEventListener('submit', async (e) => {
 async function startOnline() {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $('#waitScreen').classList.add('active');
-  $('#waitLabel').textContent = 'Поиск противника...';
+  $('#waitLabel').textContent = t('searching');
   $('#waitLabel').className = 'turn-label wait';
 
   try {
@@ -902,7 +1298,7 @@ async function startOnline() {
       joinOnlineGame();
     }
   } catch (err) {
-    $('#waitLabel').textContent = 'Ошибка: ' + err.message;
+    $('#waitLabel').textContent = t('errorPrefix') + err.message;
     $('#waitLabel').className = 'turn-label';
     $('#waitLabel').style.color = 'var(--accent-bright)';
   }
@@ -934,11 +1330,11 @@ function startTurnTimer(turnStartedAt) {
   function tick() {
     const elapsed = (Date.now() / 1000) - turnStartedAt;
     const left = Math.max(0, 30 - Math.floor(elapsed));
-    timerEl.textContent = left + 'с';
+    timerEl.textContent = left + t('timerSec');
     if (left <= 10) timerEl.classList.add('warning');
     else timerEl.classList.remove('warning');
     if (left <= 0) {
-      timerEl.textContent = 'Время вышло';
+      timerEl.textContent = t('timeOut');
       stopTurnTimer();
     }
   }
@@ -966,14 +1362,14 @@ async function joinOnlineGame() {
     if (g.status === 'active') startGamePoll();
     else if (g.status === 'finished') { gameOver = true; showResult(g); }
     else if (g.status === 'waiting') {
-      $('#waitLabel').textContent = 'Ожидание противника...';
+      $('#waitLabel').textContent = t('waiting');
       $('#waitLabel').className = 'turn-label wait';
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       $('#waitScreen').classList.add('active');
       startPoll();
     }
   } catch (err) {
-    $('#waitLabel').textContent = 'Ошибка: ' + err.message;
+    $('#waitLabel').textContent = t('errorPrefix') + err.message;
     $('#waitLabel').className = 'turn-label';
     $('#waitLabel').style.color = 'var(--accent-bright)';
   }
@@ -1025,7 +1421,7 @@ function loadGameState(g) {
   }
   if (g.status === 'active') {
     const isMyTurn = g.turn === onlineMySym;
-    turnLabel.textContent = isMyTurn ? 'Ваш ход' : 'Ход соперника';
+    turnLabel.textContent = isMyTurn ? t('yourTurn') : t('opponentTurn');
     turnLabel.className = 'turn-label ' + (isMyTurn ? (onlineMySym === 'X' ? 'x-turn' : 'o-turn') : '');
     if (isMyTurn) startTurnTimer(g.turn_started_at);
     else stopTurnTimer();
@@ -1069,7 +1465,7 @@ function startGame() {
 
 function updateTurn() {
   if (gameMode === 'online') return;
-  turnLabel.textContent = current === 'X' ? 'Ход: Крестик' : 'Ход: Нолик';
+  turnLabel.textContent = current === 'X' ? t('turnX') : t('turnO');
   turnLabel.className = 'turn-label ' + (current === 'X' ? 'x-turn' : 'o-turn');
 }
 
@@ -1231,7 +1627,7 @@ function isMathDraw(b) {
 
 async function handleOnlineMove(i) {
   try {
-    turnLabel.textContent = 'Ожидание...';
+    turnLabel.textContent = t('waitingDots');
     turnLabel.className = 'turn-label';
     const g = await api('/api/game/move', { game_id: onlineGameId, pos: i });
     sndMove();
@@ -1270,7 +1666,7 @@ function updateGamePts() {
   const el = $('#gamePts');
   if (!el) return;
   if (gameMode === 'online') {
-    el.innerHTML = '<span>' + userPoints + '</span> очков';
+    el.innerHTML = '<span>' + userPoints + '</span> ' + t('points');
     el.style.display = '';
   } else {
     el.style.display = 'none';
@@ -1282,16 +1678,16 @@ function showResultLocal(winner, pts) {
   if (winner) {
     if (gameMode === 'ai') {
       if (winner === humanSym) {
-        resultText.textContent = 'Вы победили';
+        resultText.textContent = t('youWin');
         resultText.className = 'result-text x-win';
         sndWin();
       } else {
-        resultText.textContent = 'T-800 Победил';
+        resultText.textContent = t('aiWin');
         resultText.className = 'result-text o-win';
         sndLose();
       }
     } else {
-      resultText.textContent = winner === 'X' ? 'Крестик победил' : 'Нолик победил';
+      resultText.textContent = winner === 'X' ? t('xWin') : t('oWin');
       resultText.className = 'result-text ' + (winner === 'X' ? 'x-win' : 'o-win');
       sndWin();
     }
@@ -1304,7 +1700,7 @@ function showResultLocal(winner, pts) {
       }
     });
   } else {
-    resultText.textContent = 'Ничья';
+    resultText.textContent = t('draw');
     resultText.className = 'result-text draw';
     resultPts.innerHTML = '';
     sndDraw();
@@ -1321,14 +1717,14 @@ function showResult(g) {
 
   if (winner) {
     if (isMe) {
-      resultText.textContent = forfeit ? 'Ваш противник покинул игру' : 'Победа';
+      resultText.textContent = forfeit ? t('opponentLeft') : t('victory');
       resultText.className = 'result-text x-win';
-      resultPts.innerHTML = '+<span>' + pts + '</span> ' + (pts === 1 ? 'очко' : 'очков');
+      resultPts.innerHTML = '+<span>' + pts + '</span> ' + (pts === 1 ? t('pt1') : t('pt2'));
       sndWin();
     } else {
-      resultText.textContent = forfeit ? 'Вы покинули игру' : 'Поражение';
+      resultText.textContent = forfeit ? t('youLeft') : t('defeat');
       resultText.className = 'result-text o-win';
-      resultPts.innerHTML = '-<span>' + pts + '</span> ' + (pts === 1 ? 'очко' : 'очков');
+      resultPts.innerHTML = '-<span>' + pts + '</span> ' + (pts === 1 ? t('pt1') : t('pt2'));
       sndLose();
     }
     if (!forfeit) {
@@ -1341,7 +1737,7 @@ function showResult(g) {
       });
     }
   } else {
-    resultText.textContent = 'Ничья';
+    resultText.textContent = t('draw');
     resultText.className = 'result-text draw';
     resultPts.innerHTML = '';
     sndDraw();
@@ -1363,10 +1759,10 @@ function showResult(g) {
 // ─── Back / Restart ───
 $('#backBtn').addEventListener('click', () => {
   if (!gameOver && gameMode === 'online') {
-    $('#confirmText').innerHTML = '<span class="confirm-penalty">Вы потеряете 5 очков</span>Вы точно хотите остановить игру?';
+    $('#confirmText').innerHTML = '<span class="confirm-penalty">' + t('confirmPenalty') + '</span>' + t('confirmTitle');
     $('#confirmOverlay').classList.add('show');
   } else if (!gameOver) {
-    $('#confirmText').innerHTML = 'Вы точно хотите остановить игру?';
+    $('#confirmText').innerHTML = t('confirmTitle');
     $('#confirmOverlay').classList.add('show');
   } else {
     goToMenu();
@@ -1422,17 +1818,17 @@ $('#lbBack').addEventListener('click', () => showScreen('#menu'));
 
 async function loadLeaderboard() {
   showScreen('#leaderboardScreen');
-  $('#lbList').innerHTML = '<div class="lb-empty">Загрузка...</div>';
+  $('#lbList').innerHTML = '<div class="lb-empty">' + t('lbLoading') + '</div>';
   try {
     const d = await api('/api/leaderboard');
     const list = d.leaderboard || [];
     if (!list.length) {
-      $('#lbList').innerHTML = '<div class="lb-empty">Пока нет игроков</div>';
+      $('#lbList').innerHTML = '<div class="lb-empty">' + t('lbEmpty') + '</div>';
       return;
     }
     const medals = ['top1','top2','top3'];
     let html = '<div class="lb-table">';
-    html += '<div class="lb-row header"><div class="lb-rank">#</div><div class="lb-name">Игрок</div><div class="lb-pts">Очки</div></div>';
+    html += '<div class="lb-row header"><div class="lb-rank">#</div><div class="lb-name">' + t('lbPlayer') + '</div><div class="lb-pts">' + t('lbPts') + '</div></div>';
     list.forEach((e, i) => {
       const rankClass = i < 3 ? medals[i] : '';
       const youClass = token && e.email === userEmail ? ' you' : '';
@@ -1441,7 +1837,7 @@ async function loadLeaderboard() {
     html += '</div>';
     $('#lbList').innerHTML = html;
   } catch {
-    $('#lbList').innerHTML = '<div class="lb-empty">Ошибка загрузки</div>';
+    $('#lbList').innerHTML = '<div class="lb-empty">' + t('lbError') + '</div>';
   }
 }
 
