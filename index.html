@@ -721,6 +721,19 @@
 </div>
 
 <script>
+window.onerror = function(m,s,l,c,e) {
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;bottom:10px;right:10px;z-index:99999;background:red;color:#fff;padding:10px;font:12px monospace;max-width:90vw;word-break:break-all;border-radius:4px';
+  d.textContent='JS Error: '+m+' (line '+l+')';
+  document.body.appendChild(d);
+};
+window.onunhandledrejection = function(e) {
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;bottom:10px;right:10px;z-index:99999;background:red;color:#fff;padding:10px;font:12px monospace;max-width:90vw;word-break:break-all;border-radius:4px';
+  d.textContent='Promise Error: '+e.reason;
+  document.body.appendChild(d);
+};
+
 const $ = s => document.querySelector(s);
 const boardEl = $('#board');
 const turnLabel = $('#turnLabel');
@@ -1213,7 +1226,7 @@ async function tryRestore() {
     const d = await api('/api/me');
     userPoints = d.points;
     localStorage.setItem('ttt_points', userPoints);
-  } catch { clearAuth(); }
+  } catch(e) { clearAuth(); }
   updateMenu();
 }
 tryRestore();
@@ -1313,7 +1326,7 @@ function startPoll() {
         stopPoll();
         joinOnlineGame();
       }
-    } catch {}
+    } catch(e) {}
   }, 1200);
 }
 
@@ -1382,7 +1395,7 @@ function startGamePoll() {
       const g = await api('/api/game/state?id=' + onlineGameId);
       loadGameState(g);
       if (g.status === 'finished' && !gameOver) { stopPoll(); showResult(g); }
-    } catch {}
+    } catch(e) {}
   }, 1000);
 }
 
@@ -1641,7 +1654,7 @@ async function handleOnlineMove(i) {
     try {
       const g = await api('/api/game/state?id=' + onlineGameId);
       loadGameState(g);
-    } catch {}
+    } catch(e) {}
   }
 }
 
@@ -1776,7 +1789,7 @@ $('#confirmYes').addEventListener('click', async () => {
       stopPoll();
       stopTurnTimer();
       showResult(g);
-    } catch { goToMenu(); }
+    } catch(e) { goToMenu(); }
   } else {
     goToMenu();
   }
@@ -1835,7 +1848,7 @@ async function loadLeaderboard() {
     });
     html += '</div>';
     $('#lbList').innerHTML = html;
-  } catch {
+  } catch(e) {
     $('#lbList').innerHTML = '<div class="lb-empty">' + t('lbError') + '</div>';
   }
 }
@@ -1843,6 +1856,12 @@ async function loadLeaderboard() {
 function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+var _jsok=document.createElement('div');
+_jsok.style.cssText='position:fixed;bottom:10px;right:10px;z-index:99999;background:#0a0;color:#fff;padding:4px 10px;font:11px monospace;border-radius:4px';
+_jsok.textContent='JS OK';
+document.body.appendChild(_jsok);
+setTimeout(function(){if(_jsok.parentNode)_jsok.remove()},3000);
 
 </script>
 </body>
