@@ -34,6 +34,21 @@ func initDB() {
 		log.Fatal(err)
 	}
 	db.SetMaxOpenConns(5)
+	db.SetMaxIdleConns(2)
+	db.SetConnMaxIdleTime(5 * time.Minute)
+	db.SetConnMaxLifetime(30 * time.Minute)
+
+	if err := db.Ping(); err != nil {
+		log.Printf("DB ping failed, retrying in 3s: %v", err)
+		time.Sleep(3 * time.Second)
+		if err := db.Ping(); err != nil {
+			log.Printf("WARNING: DB still unreachable after retry: %v", err)
+		} else {
+			log.Println("DB connection OK (after retry)")
+		}
+	} else {
+		log.Println("DB connection OK")
+	}
 
 	db.Exec(`CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
@@ -421,7 +436,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(err.Error(), "unique") || strings.Contains(err.Error(), "UNIQUE") {
 			jsonErr(w, "этот никнейм уже занят", 409)
 		} else {
-			jsonErr(w, "server error", 500)
+			jsonErr(w, "ошибка сервера, попробуйте позже", 500)
 		}
 		return
 	}
@@ -448,7 +463,12 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	u, err := authUser(body.Email, body.Password)
 	if err != nil {
-		jsonErr(w, "неверный никнейм или пароль", 401)
+		if strings.Contains(err.Error(), "no rows") {
+			jsonErr(w, "неверный никнейм или пароль", 401)
+		} else {
+			log.Printf("Login DB error: %v", err)
+			jsonErr(w, "ошибка сервера, попробуйте позже", 500)
+		}
 		return
 	}
 	tok := makeToken(Claims{u.ID, u.Email})
@@ -683,6 +703,7 @@ func handleLeaderboard(w http.ResponseWriter, r *http.Request) {
 	}
 	rows, err := db.Query("SELECT email, points FROM users ORDER BY points DESC LIMIT 10")
 	if err != nil {
+		log.Printf("Leaderboard query error: %v", err)
 		jsonErr(w, "db error", 500)
 		return
 	}
@@ -783,6 +804,11 @@ func main() {
 	})
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		if err := db.Ping(); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, "db: %v", err)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
